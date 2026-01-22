@@ -1,0 +1,151 @@
+----------------------------------------------------------------------
+
+CMake 构建系统文件
+
+----------------------------------------------------------------------
+
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+Testing/
+
+忽略所有 build 目录 (常见的命名习惯)
+
+build/
+build-*/
+bin/
+lib/
+out/
+
+----------------------------------------------------------------------
+
+C++ 编译产物
+
+----------------------------------------------------------------------
+
+对象文件
+
+*.o
+*.obj
+*.res
+
+库文件 (如果你不希望提交编译好的库)
+
+*.lib
+*.a
+*.dll
+*.so
+.so.
+*.dylib
+
+可执行文件
+
+*.exe
+*.out
+*.app
+
+调试文件
+
+*.pdb
+*.idb
+*.ilk
+*.exp
+*.map
+
+----------------------------------------------------------------------
+
+Qt & Qt Creator 特定文件
+
+----------------------------------------------------------------------
+
+Qt Creator 用户配置文件
+
+CMakeLists.txt.user
+*.pro.user
+.pro.user.
+
+qmake 生成的文件 (虽然你用CMake，但保留以防万一)
+
+.qmake.stash
+Makefile*
+object_script.
+
+Qt 自动生成的源码 (MOC, UIC, RCC)
+
+通常 CMake 会把这些放在构建目录中，但也可能在源目录生成
+
+moc_.cpp
+ui_.h
+qrc_*.cpp
+*.qmlc
+*.jsc
+
+----------------------------------------------------------------------
+
+IDE & 编辑器配置
+
+----------------------------------------------------------------------
+
+Visual Studio Code
+
+.vscode/
+
+JetBrains CLion / IntelliJ
+
+.idea/
+cmake-build-*/
+
+Visual Studio
+
+.vs/
+*.sln
+*.suo
+.ntvs
+*.njsproj
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+----------------------------------------------------------------------
+
+操作系统生成文件
+
+----------------------------------------------------------------------
+
+Windows
+
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+macOS
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+Linux
+
+*~
+
+----------------------------------------------------------------------
+
+项目特定 (RSPIPUtility)
+
+----------------------------------------------------------------------
+
+忽略运行算法时生成的测试结果图片 (防止污染代码库)
+
+如果你有专门的测试资源文件夹，请使用 ! 排除
+
+*.tif
+*.tiff
+*.png
+*.jpg
+*.bmp
