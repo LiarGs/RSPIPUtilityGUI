@@ -1,29 +1,27 @@
 #pragma once
 #include "IAlgorithmPage.h"
 
-class QListWidget;
 class QComboBox;
 class QGroupBox;
+class FileListWidget; // 引入新控件前置声明
 
 class MosaicPage : public IAlgorithmPage {
     Q_OBJECT
-public:
+  public:
     explicit MosaicPage(QWidget *parent = nullptr);
     QString moduleName() const override { return "影像镶嵌 (Mosaic)"; }
     void execute(const QString &savePath) override;
 
-private slots:
-    void onAddImages();
-    void onAddMasks();
-    void onAlgoChanged(int index); // 处理算法切换时的UI变化
+  private slots:
+    void onAlgoChanged(int index);
 
-private:
+  private:
     QComboBox *m_algoSelectCombo;
 
-    // 影像输入区域
-    QListWidget *m_imageList;
+    // 使用 FileListWidget 替换原始的 QListWidget + Button 组合
+    FileListWidget *m_imageSelector;
 
-    // 掩膜输入区域 (仅 DynamicPatch 需要)
+    // 掩膜输入部分
     QGroupBox *m_maskGroup;
-    QListWidget *m_maskList;
+    FileListWidget *m_maskSelector;
 };

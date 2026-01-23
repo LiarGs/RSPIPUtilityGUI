@@ -1,25 +1,26 @@
 #pragma once
 #include "IAlgorithmPage.h"
 
-class QLineEdit;
+// 前置声明
 class QComboBox;
+class FileSelectWidget; // [修改] 引入新类的前置声明
 
 class ColorBalancePage : public IAlgorithmPage {
     Q_OBJECT
-public:
+  public:
     explicit ColorBalancePage(QWidget *parent = nullptr);
     QString moduleName() const override { return "匀色处理 (Color Balance)"; }
 
     void execute(const QString &savePath) override;
 
-private slots:
-    void onBrowseTarget();
-    void onBrowseRefer();
-    void onBrowseMask();
+    // [修改] 删除了 onBrowseTarget, onBrowseRefer, onBrowseMask 槽函数
+    // 因为这些逻辑现在由 FileSelectWidget 内部处理
 
-private:
+  private:
     QComboBox *m_algoSelectCombo;
-    QLineEdit *m_targetEdit;
-    QLineEdit *m_referEdit;
-    QLineEdit *m_maskEdit;
+
+    // [修改] 将 QLineEdit* 替换为 FileSelectWidget*
+    FileSelectWidget *m_targetSelect;
+    FileSelectWidget *m_referSelect;
+    FileSelectWidget *m_maskSelect;
 };

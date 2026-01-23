@@ -32,10 +32,13 @@ set(RSPIP_LIBRARY_PATH "E:/RSPIP/GuoShuai/RSPIPUtilities/build/Release/RSPIP_Cor
 # -----------------------------------------------------------------------------
 set(PROJECT_SOURCES
     main.cpp
-    MainWindow.cpp
-    MainWindow.h
-    ResultViewer.cpp
-    ResultViewer.h
+    MainWindow.cpp MainWindow.h
+    ResultViewer.cpp ResultViewer.h
+    
+    # [新增] 通用控件
+    Common/FileSelectWidget.cpp Common/FileSelectWidget.h 
+        Common/FileListWidget.cpp Common/FileListWidget.h 
+    
     MosaicPage.cpp MosaicPage.h
     ReconstructPage.cpp ReconstructPage.h
     ColorBalancePage.cpp ColorBalancePage.h

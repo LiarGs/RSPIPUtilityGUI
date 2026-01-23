@@ -1,24 +1,23 @@
 #pragma once
 #include "IAlgorithmPage.h"
 
-class QLineEdit;
 class QComboBox;
+class FileSelectWidget; // 前置声明通用控件
 
 class ReconstructPage : public IAlgorithmPage {
     Q_OBJECT
-public:
+  public:
     explicit ReconstructPage(QWidget *parent = nullptr);
     QString moduleName() const override { return "影像重构 (Reconstruct)"; }
     void execute(const QString &savePath) override;
 
-private slots:
-    void onBrowseTarget();
-    void onBrowseRefer();
-    void onBrowseMask();
+    // 已删除冗余的 onBrowse... 槽函数
 
-private:
+  private:
     QComboBox *m_algoSelectCombo;
-    QLineEdit *m_targetEdit;
-    QLineEdit *m_referEdit;
-    QLineEdit *m_maskEdit;
+
+    // 使用通用控件替换 QLineEdit
+    FileSelectWidget *m_targetSelect;
+    FileSelectWidget *m_referSelect;
+    FileSelectWidget *m_maskSelect;
 };
