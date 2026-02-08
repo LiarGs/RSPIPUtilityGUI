@@ -7,6 +7,8 @@ class QListWidget;
 class QPushButton;
 class QLabel;
 
+namespace UI::Common {
+
 /**
  * @brief 通用文件列表控件
  * @details 封装了 "Label + ListWidget + AddButton + ClearButton" 的组合
@@ -20,25 +22,27 @@ class FileListWidget : public QWidget {
                             QWidget *parent = nullptr);
 
     // 获取当前列表中的所有文件路径
-    QStringList files() const;
+    QStringList Files() const;
 
     // 清空列表
-    void clear();
+    void Clear();
 
     // 手动添加文件
-    void addFiles(const QStringList &files);
+    void AddFiles(const QStringList &Files);
 
   signals:
-    void fileListChanged();
+    void FileListChanged();
 
   private slots:
-    void onAddClicked();
-    void onClearClicked();
+    void _OnAddClicked();
+    void _OnClearClicked();
 
   private:
-    QString m_filter;
-    QLabel *m_label;
-    QListWidget *m_listWidget;
-    QPushButton *m_addBtn;
-    QPushButton *m_clearBtn;
+    QString _Filter;
+    QLabel *_Label;
+    QListWidget *_ListWidget;
+    QPushButton *_AddBtn;
+    QPushButton *_ClearBtn;
 };
+
+} // namespace UI::Common

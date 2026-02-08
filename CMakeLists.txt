@@ -12,13 +12,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 2. 依赖查找
 # -----------------------------------------------------------------------------
 
+set(CMAKE_PREFIX_PATH "D:/Qt/6.10.1/msvc2022_64") # 替换为你实际的 Qt 安装路径
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(OpenCV REQUIRED)
 find_package(GDAL REQUIRED)
 find_package(OpenMP)
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # 3. 配置 RSPIP 库路径
 
 # RSPIP 头文件所在的根目录 (包含 include/RSPIP.h 的那个目录)
@@ -30,31 +32,28 @@ set(RSPIP_LIBRARY_PATH "E:/RSPIP/GuoShuai/RSPIPUtilities/build/Release/RSPIP_Cor
 # -----------------------------------------------------------------------------
 # 源文件设置
 # -----------------------------------------------------------------------------
+# 自动递归查找 UI 目录下所有的源文件 (Pages, Common)
+file(GLOB_RECURSE UI_SOURCES
+    "UI/*.h"
+    "UI/*.cpp"
+)
+
+# 自动递归查找 Panel 目录下所有的源文件 (Panel, Common)
+file(GLOB_RECURSE Panel_SOURCES
+    "Panels/*.h"
+    "Panels/*.cpp"
+)
+
 set(PROJECT_SOURCES
     main.cpp
-    MainWindow.cpp MainWindow.h
-    ResultViewer.cpp ResultViewer.h
-    
-    # [新增] 通用控件
-    Common/FileSelectWidget.cpp Common/FileSelectWidget.h 
-        Common/FileListWidget.cpp Common/FileListWidget.h 
-    
-    MosaicPage.cpp MosaicPage.h
-    ReconstructPage.cpp ReconstructPage.h
-    ColorBalancePage.cpp ColorBalancePage.h
-    IAlgorithmPage.h
+    ${UI_SOURCES}
+    ${Panel_SOURCES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(RSPIPUtility
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        Test.hpp
-        IAlgorithmPage.h
-        MosaicPage.h MosaicPage.cpp
-        ReconstructPage.h ReconstructPage.cpp
-        ColorBalancePage.h ColorBalancePage.cpp
-        ResultViewer.h ResultViewer.cpp
     )
 else()
     if(ANDROID)
@@ -77,6 +76,8 @@ target_include_directories(RSPIPUtility PRIVATE
     ${RSPIP_INCLUDE_DIR}/include     # 为了能引用 "RSPIP.h"
     ${GDAL_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/UI
 )
 
 # 链接库

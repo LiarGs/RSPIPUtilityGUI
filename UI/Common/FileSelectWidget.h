@@ -7,6 +7,8 @@ class QLineEdit;
 class QPushButton;
 class QLabel;
 
+namespace UI::Common {
+
 /**
  * @brief 通用文件选择控件 (Reusable UI Component)
  * @details 封装了 "Label(标题) + LineEdit(路径) + Button(浏览)" 的组合
@@ -33,27 +35,29 @@ class FileSelectWidget : public QWidget {
                               QWidget *parent = nullptr);
 
     // 获取当前路径
-    QString currentPath() const;
+    QString CurrentPath() const;
 
     // 设置路径
-    void setPath(const QString &path);
+    void SetPath(const QString &path);
 
     // 设置输入框占位符
-    void setPlaceholderText(const QString &text);
+    void SetPlaceholderText(const QString &text);
 
   signals:
     // 当路径发生变化时触发 (无论是手动输入还是通过按钮选择)
-    void pathChanged(const QString &newPath);
+    void PathChanged(const QString &newPath);
 
   private slots:
-    void onBrowseClicked();
+    void OnBrowseClicked();
 
   private:
-    Mode m_mode;
-    QString m_filter;
-    QString m_dialogTitle;
+    Mode _Mode;
+    QString _Filter;
+    QString _DialogTitle;
 
-    QLabel *m_label;
-    QLineEdit *m_pathEdit;
-    QPushButton *m_browseBtn;
+    QLabel *_Label;
+    QLineEdit *_PathEdit;
+    QPushButton *_BrowseBtn;
 };
+
+} // namespace UI::Common
