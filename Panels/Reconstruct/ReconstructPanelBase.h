@@ -1,4 +1,11 @@
 ﻿#pragma once
+
+#include <QDateTime>
+#include <QFileInfo>
+#include <QMessageBox>
+#include <QStandardPaths>
+#include <QVBoxLayout>
+
 #include "Basic/Image.h"
 #include "Common/FileSelectWidget.h"
 #include "Panels/AlgorithmPanelBase.h"

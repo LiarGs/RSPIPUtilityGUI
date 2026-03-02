@@ -1,12 +1,5 @@
 ﻿#include "ReconstructPanelBase.h"
 #include "Common/FileSelectWidget.h"
-
-#include <QDateTime>
-#include <QFileInfo>
-#include <QMessageBox>
-#include <QStandardPaths>
-#include <QVBoxLayout>
-
 #include "IO/ImageSaveVisitor.h"
 
 namespace Panels::Reconstruct {
