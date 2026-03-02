@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <QComboBox>
 #include <QLineEdit>
@@ -28,18 +28,19 @@ class MainWindow : public QMainWindow {
     void OnBrowseOutput();
     void OnExecuteClicked();
     void OnLogMessage(const QString &msg);
+    void OnPageExecutionStarted();
+    void OnPageExecutionFinished(bool success);
 
   private:
     void _SetupUi();
     void _InitModules();
 
-    QComboBox *_AlgoSelector;
-    QStackedWidget *_ParamStack;
-    QLineEdit *_OutputPathEdit;
-    QPushButton *_RunBtn;
-    QTextEdit *_LogConsole;
+    QComboBox *_AlgoSelector = nullptr;
+    QStackedWidget *_ParamStack = nullptr;
+    QLineEdit *_OutputPathEdit = nullptr;
+    QPushButton *_RunBtn = nullptr;
+    QTextEdit *_LogConsole = nullptr;
 
-    // --- UI Controllers ---
     QList<Pages::ModulePageBase *> _Pages;
 };
 

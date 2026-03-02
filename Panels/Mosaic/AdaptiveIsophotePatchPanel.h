@@ -4,15 +4,15 @@
 namespace Panels::Mosaic {
 
 /**
- * @brief DynamicPatch (动态补丁) 算法面板
+ * @brief AdaptiveIsophotePatch (等照度自适应补丁) 算法面板
  * @details 该算法除了影像列表外，还需要掩膜列表
  */
-class DynamicPatchPanel : public MosaicPanelBase {
+class AdaptiveIsophotePatchPanel : public MosaicPanelBase {
     Q_OBJECT
   public:
-    explicit DynamicPatchPanel(QWidget *parent = nullptr);
+    explicit AdaptiveIsophotePatchPanel(QWidget *parent = nullptr);
 
-    QString AlgorithmName() const override { return "DynamicPatch (动态补丁)"; }
+    QString AlgorithmName() const override { return "AdaptiveIsophotePatch (等照度自适应补丁)"; }
     bool ValidateInput() const override;
     std::function<bool()> BuildTask(const QString &globalSavePath) override;
 

@@ -11,7 +11,7 @@ class ColorBalancePanel : public ReconstructPanelBase {
   public:
     explicit ColorBalancePanel(QWidget *parent = nullptr) : ReconstructPanelBase(parent) {}
     QString AlgorithmName() const override { return "ColorBalanceReconstruct (匀色重构)"; }
-    bool Run(const QString &globalSavePath) override;
+    std::function<bool()> BuildTask(const QString &globalSavePath) override;
 };
 
 } // namespace Panels::Reconstruct

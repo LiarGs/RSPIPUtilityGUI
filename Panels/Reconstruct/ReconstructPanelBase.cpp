@@ -52,7 +52,7 @@ bool ReconstructPanelBase::_SaveResult(const RSPIP::Image &result, const QString
                             .arg(tempDir)
                             .arg(prefix)
                             .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
-        emit LogMessage(">> 使用自动生成的路径: " + finalSavePath);
+        PostLog(">> 使用自动生成的路径: " + finalSavePath);
     }
 
     bool saved = RSPIP::IO::SaveImage(result,
@@ -60,9 +60,9 @@ bool ReconstructPanelBase::_SaveResult(const RSPIP::Image &result, const QString
                                       QFileInfo(finalSavePath).fileName().toStdString());
 
     if (saved) {
-        emit LogMessage(">> 重构完成并保存！");
+        PostLog(">> 重构完成并保存！");
     } else {
-        emit LogMessage("错误: 结果保存失败。");
+        PostLog("错误: 结果保存失败。");
     }
     return saved;
 }

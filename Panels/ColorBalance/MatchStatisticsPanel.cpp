@@ -1,7 +1,6 @@
 ﻿#include "MatchStatisticsPanel.h"
 #include "Common/FileSelectWidget.h"
 
-#include <QApplication>
 #include <QDateTime>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -54,64 +53,68 @@ bool MatchStatisticsPanel::ValidateInput() const {
     return true;
 }
 
-bool MatchStatisticsPanel::Run(const QString &globalSavePath) {
-    std::string targetPath = _TargetSelect->CurrentPath().toStdString();
-    std::string referPath = _ReferSelect->CurrentPath().toStdString();
-    std::string maskPath = _MaskSelect->CurrentPath().toStdString();
+std::function<bool()> MatchStatisticsPanel::BuildTask(const QString &globalSavePath) {
+    const std::string targetPath = _TargetSelect->CurrentPath().toStdString();
+    const std::string referPath = _ReferSelect->CurrentPath().toStdString();
+    const std::string maskPath = _MaskSelect->CurrentPath().toStdString();
 
-    emit LogMessage(">> [MatchStatistics] 正在读取影像数据...");
-    QApplication::processEvents(); // 刷新 UI 防止卡死
+    return [this, targetPath, referPath, maskPath, globalSavePath]() {
+        PostLog(">> [MatchStatistics] 正在读取影像数据...");
 
-    try {
-        auto targetImage = RSPIP::IO::GeoImageRead(targetPath);
-        auto referImage = RSPIP::IO::GeoImageRead(referPath);
+        try {
+            auto targetImage = RSPIP::IO::GeoImageRead(targetPath);
+            auto referImage = RSPIP::IO::GeoImageRead(referPath);
 
-        if (!targetImage || !referImage) {
-            emit LogMessage("错误: 无法读取影像数据。");
+            if (!targetImage || !referImage) {
+                PostLog("错误: 无法读取影像数据。");
+                return false;
+            }
+
+            std::unique_ptr<RSPIP::CloudMask> maskImage;
+            if (!maskPath.empty()) {
+                maskImage = RSPIP::IO::CloudMaskImageRead(maskPath);
+                if (!maskImage) {
+                    PostLog("错误: 无法读取掩膜文件。");
+                    return false;
+                }
+            } else {
+                maskImage = std::make_unique<RSPIP::CloudMask>();
+            }
+
+            RSPIP::Algorithm::ColorBalanceAlgorithm::MatchStatistics algorithm(
+                *targetImage, *referImage, *maskImage);
+
+            PostLog(">> 算法正在执行...");
+            algorithm.Execute();
+
+            QString finalSavePath = globalSavePath;
+            if (finalSavePath.isEmpty()) {
+                QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+                finalSavePath = QString("%1/match_stat_%2.tif")
+                                    .arg(tempDir)
+                                    .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
+                PostLog(">> 使用自动生成的路径: " + finalSavePath);
+            }
+
+            bool saved = RSPIP::IO::SaveImage(algorithm.AlgorithmResult,
+                                              QFileInfo(finalSavePath).absolutePath().toStdString(),
+                                              QFileInfo(finalSavePath).fileName().toStdString());
+
+            if (saved) {
+                PostLog(">> 处理成功！");
+                return true;
+            }
+
+            PostLog("错误: 保存结果失败。");
+            return false;
+
+        } catch (const std::exception &e) {
+            PostLog(QString("异常: %1").arg(e.what()));
             return false;
         }
-
-        std::unique_ptr<RSPIP::CloudMask> maskImage;
-        if (!maskPath.empty()) {
-            maskImage = RSPIP::IO::CloudMaskImageRead(maskPath);
-        } else {
-            // 如果没有掩膜，创建一个空掩膜对象
-            maskImage = std::make_unique<RSPIP::CloudMask>();
-        }
-
-        RSPIP::Algorithm::ColorBalanceAlgorithm::MatchStatistics algorithm(
-            *targetImage, *referImage, *maskImage);
-
-        emit LogMessage(">> 算法正在执行...");
-        QApplication::processEvents();
-
-        algorithm.Execute();
-
-        QString finalSavePath = globalSavePath;
-        if (finalSavePath.isEmpty()) {
-            QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-            finalSavePath = QString("%1/match_stat_%2.tif")
-                                .arg(tempDir)
-                                .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
-            emit LogMessage(">> 使用自动生成的路径: " + finalSavePath);
-        }
-
-        bool saved = RSPIP::IO::SaveImage(algorithm.AlgorithmResult,
-                                          QFileInfo(finalSavePath).absolutePath().toStdString(),
-                                          QFileInfo(finalSavePath).fileName().toStdString());
-
-        if (saved) {
-            emit LogMessage(">> 处理成功！");
-            return true;
-        } else {
-            emit LogMessage("错误: 保存结果失败。");
-            return false;
-        }
-
-    } catch (const std::exception &e) {
-        emit LogMessage(QString("异常: %1").arg(e.what()));
-        return false;
-    }
+    };
 }
 
 } // namespace Panels::ColorBalance
+
+

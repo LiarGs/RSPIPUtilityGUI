@@ -12,7 +12,7 @@ class IsophotePanel : public ReconstructPanelBase {
     Q_OBJECT
   public:
     explicit IsophotePanel(QWidget *parent = nullptr);
-    bool Run(const QString &globalSavePath) override;
+    std::function<bool()> BuildTask(const QString &globalSavePath) override;
     QString AlgorithmName() const override { return "IsophoteConstrain (等照度线约束)"; }
 
   protected:

@@ -1,12 +1,12 @@
-﻿#include "DynamicPatchPanel.h"
+﻿#include "AdaptiveIsophotePatchPanel.h"
 
 namespace Panels::Mosaic {
 
-DynamicPatchPanel::DynamicPatchPanel(QWidget *parent) : MosaicPanelBase(parent) {
+AdaptiveIsophotePatchPanel::AdaptiveIsophotePatchPanel(QWidget *parent) : MosaicPanelBase(parent) {
     _SetupUi();
 }
 
-void DynamicPatchPanel::_SetupUi() {
+void AdaptiveIsophotePatchPanel::_SetupUi() {
     auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
 
     auto *maskGroup = new QGroupBox("输入云掩膜 (Cloud Masks)", this);
@@ -22,24 +22,24 @@ void DynamicPatchPanel::_SetupUi() {
     layout->addStretch();
 }
 
-bool DynamicPatchPanel::ValidateInput() const {
+bool AdaptiveIsophotePatchPanel::ValidateInput() const {
     if (!MosaicPanelBase::ValidateInput())
         return false;
 
     if (_MaskSelector->Files().count() != _ImageSelector->Files().count()) {
-        QMessageBox::warning(const_cast<DynamicPatchPanel *>(this), "数量不匹配",
-                             "DynamicPatch 算法要求掩膜文件数量必须与影像文件数量完全一致。");
+        QMessageBox::warning(const_cast<AdaptiveIsophotePatchPanel *>(this), "数量不匹配",
+                             "AdaptiveIsophotePatch 算法要求掩膜文件数量必须与影像文件数量完全一致。");
         return false;
     }
     return true;
 }
 
-std::function<bool()> DynamicPatchPanel::BuildTask(const QString &globalSavePath) {
+std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globalSavePath) {
     const QStringList imageFiles = _ImageSelector->Files();
     const QStringList maskFiles = _MaskSelector->Files();
 
     return [this, imageFiles, maskFiles, globalSavePath]() {
-        PostLog(">> [DynamicPatch] 开始执行...");
+        PostLog(">> [AdaptiveIsophotePatch] 开始执行...");
 
         try {
             std::vector<RSPIP::GeoImage> images;
@@ -68,11 +68,11 @@ std::function<bool()> DynamicPatchPanel::BuildTask(const QString &globalSavePath
                 }
             }
 
-            RSPIP::Algorithm::MosaicAlgorithm::DynamicPatch algorithm(images, masks);
-            PostLog(">> 正在执行动态补丁镶嵌 (耗时操作)...");
+            RSPIP::Algorithm::MosaicAlgorithm::AdaptiveIsophotePatch algorithm(images, masks);
+            PostLog(">> 正在执行等照度自适应补丁镶嵌 (耗时操作)...");
             algorithm.Execute();
 
-            return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "Mosaic_Dynamic");
+            return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "Mosaic_AdaptiveIsophote");
 
         } catch (const std::exception &e) {
             PostLog(QString("异常: %1").arg(e.what()));

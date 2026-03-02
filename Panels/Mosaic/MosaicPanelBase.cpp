@@ -28,7 +28,7 @@ bool MosaicPanelBase::_SaveResult(const RSPIP::GeoImage &result, const QString &
                             .arg(tempDir)
                             .arg(prefix)
                             .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
-        emit LogMessage(">> 使用自动生成的路径: " + finalSavePath);
+        PostLog(">> 使用自动生成的路径: " + finalSavePath);
     }
 
     bool saved = RSPIP::IO::SaveImage(result,
@@ -36,9 +36,9 @@ bool MosaicPanelBase::_SaveResult(const RSPIP::GeoImage &result, const QString &
                                       QFileInfo(finalSavePath).fileName().toStdString());
 
     if (saved) {
-        emit LogMessage(">> 镶嵌完成并保存！");
+        PostLog(">> 镶嵌完成并保存！");
     } else {
-        emit LogMessage("错误: 结果保存失败。");
+        PostLog("错误: 结果保存失败。");
     }
     return saved;
 }
@@ -52,3 +52,4 @@ bool MosaicPanelBase::ValidateInput() const {
 }
 
 } // namespace Panels::Mosaic
+

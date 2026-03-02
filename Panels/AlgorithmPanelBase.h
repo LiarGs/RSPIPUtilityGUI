@@ -1,5 +1,8 @@
 ﻿#pragma once
+#include <QMetaObject>
+#include <QThread>
 #include <QWidget>
+#include <functional>
 
 namespace Panels {
 
@@ -22,17 +25,22 @@ class AlgorithmPanelBase : public QWidget {
     virtual bool ValidateInput() const = 0;
 
     /**
-     * @brief 执行算法流程
-     * @details 包含：读取数据 -> 构造算法 -> 执行 -> 保存结果
-     * @param globalSavePath 用户在主界面指定的保存路径（如果为空，Panel 应自行生成临时路径）
-     * @return true 执行成功
+     * @brief 构建后台任务（在 UI 线程采集参数，在后台线程执行耗时逻辑）
      */
-    virtual bool Run(const QString &globalSavePath) = 0;
+    virtual std::function<bool()> BuildTask(const QString &globalSavePath) = 0;
+
+    /**
+     * @brief 线程安全日志输出
+     */
+    void PostLog(const QString &msg) {
+        if (QThread::currentThread() == thread()) {
+            emit LogMessage(msg);
+            return;
+        }
+        QMetaObject::invokeMethod(this, [this, msg]() { emit LogMessage(msg); }, Qt::QueuedConnection);
+    }
 
   protected:
-    /**
-     *
-     */
     virtual void _SetupUi() = 0;
 
   signals:

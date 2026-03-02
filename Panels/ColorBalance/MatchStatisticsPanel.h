@@ -20,16 +20,15 @@ class MatchStatisticsPanel : public AlgorithmPanelBase {
     QString AlgorithmName() const override { return "MatchStatistics (统计学方法)"; }
 
     bool ValidateInput() const override;
-
-    bool Run(const QString &globalSavePath) override;
+    std::function<bool()> BuildTask(const QString &globalSavePath) override;
 
   protected:
     void _SetupUi() override;
 
   private:
-    FileSelectWidget *_TargetSelect;
-    FileSelectWidget *_ReferSelect;
-    FileSelectWidget *_MaskSelect;
+    FileSelectWidget *_TargetSelect = nullptr;
+    FileSelectWidget *_ReferSelect = nullptr;
+    FileSelectWidget *_MaskSelect = nullptr;
 };
 
 } // namespace Panels::ColorBalance

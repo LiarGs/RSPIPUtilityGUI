@@ -11,9 +11,7 @@
 #include <QVBoxLayout>
 
 // --- RSPIP Headers ---
-#include "Algorithm/Mosaic/DynamicPatch.h"
-#include "Algorithm/Mosaic/ShowOverLap.h"
-#include "Algorithm/Mosaic/Simple.h"
+#include "Algorithm/Mosaic.h"
 #include "Basic/CloudMask.h"
 #include "Basic/GeoImage.h"
 #include "IO/ImageReader.h"

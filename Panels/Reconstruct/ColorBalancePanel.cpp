@@ -1,37 +1,41 @@
 ﻿#include "ColorBalancePanel.h"
-#include <QApplication>
 // --- RSPIP Headers ---
-#include "Algorithm/ImageReconstruct/ColorBalanceReconstruct.h"
 #include "Basic/CloudMask.h"
 #include "IO/ImageReader.h"
 
 namespace Panels::Reconstruct {
 
-bool ColorBalancePanel::Run(const QString &globalSavePath) {
-    emit LogMessage(">> 正在加载影像数据...");
-    QApplication::processEvents();
+std::function<bool()> ColorBalancePanel::BuildTask(const QString &globalSavePath) {
+    const QString targetPath = _TargetSelect->CurrentPath();
+    const QString referPath = _ReferSelect->CurrentPath();
+    const QString maskPath = _MaskSelect->CurrentPath();
 
-    auto targetImage = RSPIP::IO::GeoImageRead(_TargetSelect->CurrentPath().toStdString());
-    auto referImage = RSPIP::IO::GeoImageRead(_ReferSelect->CurrentPath().toStdString());
-    auto maskImage = RSPIP::IO::CloudMaskImageRead(_MaskSelect->CurrentPath().toStdString());
+    return [this, targetPath, referPath, maskPath, globalSavePath]() {
+        PostLog(">> 正在加载影像数据...");
 
-    if (!(targetImage && referImage && maskImage)) {
-        emit LogMessage("错误: 无法读取影像或掩膜文件。");
-        return false;
-    }
+        auto targetImage = RSPIP::IO::GeoImageRead(targetPath.toStdString());
+        auto referImage = RSPIP::IO::GeoImageRead(referPath.toStdString());
+        auto maskImage = RSPIP::IO::CloudMaskImageRead(maskPath.toStdString());
 
-    try {
-        emit LogMessage(">> [ColorBalance] 正在执行...");
-        QApplication::processEvents();
+        if (!(targetImage && referImage && maskImage)) {
+            PostLog("错误: 无法读取影像或掩膜文件。");
+            return false;
+        }
 
-        RSPIP::Algorithm::ReconstructAlgorithm::ColorBalanceReconstruct algorithm(*targetImage, *referImage, *maskImage);
-        algorithm.Execute();
+        try {
+            PostLog(">> [ColorBalance] 正在执行...");
 
-        return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "ReconstructColorBalance");
-    } catch (const std::exception &e) {
-        emit LogMessage(QString("异常: %1").arg(e.what()));
-        return false;
-    }
+            RSPIP::Algorithm::ReconstructAlgorithm::ColorBalanceReconstruct algorithm(*targetImage, *referImage, *maskImage);
+            algorithm.Execute();
+
+            return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "ReconstructColorBalance");
+        } catch (const std::exception &e) {
+            PostLog(QString("异常: %1").arg(e.what()));
+            return false;
+        }
+    };
 }
 
 } // namespace Panels::Reconstruct
+
+

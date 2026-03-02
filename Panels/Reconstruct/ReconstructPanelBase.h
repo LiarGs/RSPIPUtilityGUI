@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 #include <QVBoxLayout>
 
+#include "Algorithm/Reconstruct.h"
 #include "Basic/Image.h"
 #include "Common/FileSelectWidget.h"
 #include "Panels/AlgorithmPanelBase.h"

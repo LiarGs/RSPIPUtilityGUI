@@ -1,4 +1,5 @@
-﻿#include "MosaicPanelBase.h"
+﻿#pragma once
+#include "MosaicPanelBase.h"
 
 namespace Panels::Mosaic {
 
@@ -10,7 +11,7 @@ class ShowOverlapPanel : public MosaicPanelBase {
   public:
     explicit ShowOverlapPanel(QWidget *parent = nullptr) : MosaicPanelBase(parent) {}
     QString AlgorithmName() const override { return "ShowOverLap (显示重叠区域)"; }
-    bool Run(const QString &globalSavePath) override;
+    std::function<bool()> BuildTask(const QString &globalSavePath) override;
 };
 
 } // namespace Panels::Mosaic

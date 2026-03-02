@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include "Panels/AlgorithmPanelBase.h"
 #include <QComboBox>
 #include <QStackedWidget>
+#include <QThread>
 #include <QWidget>
 
 namespace UI::Pages {
@@ -18,7 +19,7 @@ class ModulePageBase : public QWidget {
     Q_OBJECT
   public:
     explicit ModulePageBase(QWidget *parent = nullptr);
-    virtual ~ModulePageBase() override = default;
+    virtual ~ModulePageBase() override;
 
     virtual QString ModuleName() const = 0;
     AlgorithmPanelBase *CurrentPanel() const;
@@ -26,6 +27,8 @@ class ModulePageBase : public QWidget {
 
   signals:
     void LogMessage(const QString &msg);
+    void ExecutionStarted();
+    void ExecutionFinished(bool success);
 
   protected:
     virtual void _SetupUi();
@@ -41,8 +44,13 @@ class ModulePageBase : public QWidget {
     void OnModuleChanged(int index);
 
   private:
-    QComboBox *_AlgoSelectCombo;
-    QStackedWidget *_PanelStack;
+    void _FinalizeTask(bool success);
+
+    QComboBox *_AlgoSelectCombo = nullptr;
+    QStackedWidget *_PanelStack = nullptr;
+
+    QThread *_TaskThread = nullptr;
+    bool _IsExecuting = false;
 };
 
 } // namespace UI::Pages
