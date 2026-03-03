@@ -1,4 +1,5 @@
-﻿#include "MainWindow.h"
+#include "MainWindow.h"
+#include "Pages/CloudDetectionPage.h"
 #include "Pages/ColorBalancePage.h"
 #include "Pages/MosaicPage.h"
 #include "Pages/ReconstructPage.h"
@@ -132,6 +133,7 @@ void MainWindow::_InitModules() {
     pages << new Pages::MosaicPage(this);
     pages << new Pages::ReconstructPage(this);
     pages << new Pages::ColorBalancePage(this);
+    pages << new Pages::CloudDetectionPage(this);
 
     for (auto page : pages) {
         _Pages.append(page);
@@ -218,4 +220,5 @@ void MainWindow::_UpdateAlgorithmDescription() {
 }
 
 } // namespace UI
+
 
