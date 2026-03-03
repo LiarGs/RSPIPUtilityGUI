@@ -27,17 +27,17 @@ void ReconstructPanelBase::_SetupUi() {
     layout->addStretch();
 }
 
-bool ReconstructPanelBase::ValidateInput() const {
+bool ReconstructPanelBase::ValidateInput() {
     if (_TargetSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(const_cast<ReconstructPanelBase *>(this), "输入错误", "请选择目标影像 (Target)");
+        QMessageBox::warning(this, "输入错误", "请选择目标影像 (Target)");
         return false;
     }
     if (_ReferSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(const_cast<ReconstructPanelBase *>(this), "输入错误", "请选择参考影像 (Reference)");
+        QMessageBox::warning(this, "输入错误", "请选择参考影像 (Reference)");
         return false;
     }
     if (_MaskSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(const_cast<ReconstructPanelBase *>(this), "输入错误", "请选择云掩膜 (Mask)");
+        QMessageBox::warning(this, "输入错误", "请选择云掩膜 (Mask)");
         return false;
     }
 
@@ -68,3 +68,4 @@ bool ReconstructPanelBase::_SaveResult(const RSPIP::Image &result, const QString
 }
 
 } // namespace Panels::Reconstruct
+

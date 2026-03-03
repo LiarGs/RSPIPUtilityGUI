@@ -30,7 +30,7 @@ class AlgorithmPanelBase : public QWidget {
      * @brief 验证面板上的参数输入是否合法
      * @return true 合法, false 不合法 (Panel 内部应弹窗提示)
      */
-    virtual bool ValidateInput() const = 0;
+    virtual bool ValidateInput() = 0;
 
     /**
      * @brief 构建后台任务（在 UI 线程采集参数，在后台线程执行耗时逻辑）
@@ -56,3 +56,4 @@ class AlgorithmPanelBase : public QWidget {
 };
 
 } // namespace Panels
+

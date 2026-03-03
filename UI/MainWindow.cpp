@@ -161,7 +161,7 @@ void MainWindow::OnBrowseOutput() {
 }
 
 void MainWindow::OnExecuteClicked() {
-    ModulePageBase *currentPage = dynamic_cast<ModulePageBase *>(_ParamStack->currentWidget());
+    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
     if (currentPage) {
         currentPage->Execute(_OutputPathEdit->text());
     }
@@ -202,7 +202,7 @@ void MainWindow::_UpdateAlgorithmDescription() {
         return;
     }
 
-    ModulePageBase *currentPage = dynamic_cast<ModulePageBase *>(_ParamStack->currentWidget());
+    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
     if (!currentPage) {
         _DescriptionView->setPlainText(tr("未找到当前页面。"));
         return;
@@ -218,3 +218,4 @@ void MainWindow::_UpdateAlgorithmDescription() {
 }
 
 } // namespace UI
+

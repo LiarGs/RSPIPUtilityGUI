@@ -41,13 +41,13 @@ void MatchStatisticsPanel::_SetupUi() {
     layout->addStretch();
 }
 
-bool MatchStatisticsPanel::ValidateInput() const {
+bool MatchStatisticsPanel::ValidateInput() {
     if (_TargetSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(const_cast<MatchStatisticsPanel *>(this), "输入错误", "请选择目标影像");
+        QMessageBox::warning(this, "输入错误", "请选择目标影像");
         return false;
     }
     if (_ReferSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(const_cast<MatchStatisticsPanel *>(this), "输入错误", "请选择参考影像");
+        QMessageBox::warning(this, "输入错误", "请选择参考影像");
         return false;
     }
     return true;
@@ -116,5 +116,6 @@ std::function<bool()> MatchStatisticsPanel::BuildTask(const QString &globalSaveP
 }
 
 } // namespace Panels::ColorBalance
+
 
 

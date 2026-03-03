@@ -8,6 +8,10 @@ AdaptiveIsophotePatchPanel::AdaptiveIsophotePatchPanel(QWidget *parent) : Mosaic
 
 void AdaptiveIsophotePatchPanel::_SetupUi() {
     auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
+    if (!layout) {
+        layout = new QVBoxLayout(this);
+        setLayout(layout);
+    }
 
     auto *maskGroup = new QGroupBox("输入云掩膜 (Cloud Masks)", this);
     auto *maskLayout = new QVBoxLayout(maskGroup);
@@ -22,12 +26,12 @@ void AdaptiveIsophotePatchPanel::_SetupUi() {
     layout->addStretch();
 }
 
-bool AdaptiveIsophotePatchPanel::ValidateInput() const {
+bool AdaptiveIsophotePatchPanel::ValidateInput() {
     if (!MosaicPanelBase::ValidateInput())
         return false;
 
     if (_MaskSelector->Files().count() != _ImageSelector->Files().count()) {
-        QMessageBox::warning(const_cast<AdaptiveIsophotePatchPanel *>(this), "数量不匹配",
+        QMessageBox::warning(this, "数量不匹配",
                              "AdaptiveIsophotePatch 算法要求掩膜文件数量必须与影像文件数量完全一致。");
         return false;
     }
@@ -82,5 +86,7 @@ std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globa
 }
 
 } // namespace Panels::Mosaic
+
+
 
 

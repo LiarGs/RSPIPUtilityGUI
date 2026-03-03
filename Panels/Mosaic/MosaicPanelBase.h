@@ -30,7 +30,7 @@ class MosaicPanelBase : public AlgorithmPanelBase {
     explicit MosaicPanelBase(QWidget *parent = nullptr);
     ~MosaicPanelBase() override = default;
 
-    bool ValidateInput() const override;
+    bool ValidateInput() override;
 
   protected:
     void _SetupUi() override;
@@ -41,3 +41,4 @@ class MosaicPanelBase : public AlgorithmPanelBase {
 };
 
 } // namespace Panels::Mosaic
+

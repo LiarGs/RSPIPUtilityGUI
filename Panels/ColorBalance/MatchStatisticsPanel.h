@@ -19,7 +19,7 @@ class MatchStatisticsPanel : public AlgorithmPanelBase {
 
     QString AlgorithmName() const override { return "MatchStatistics (统计学方法)"; }
 
-    bool ValidateInput() const override;
+    bool ValidateInput() override;
     std::function<bool()> BuildTask(const QString &globalSavePath) override;
 
   protected:
@@ -32,3 +32,4 @@ class MatchStatisticsPanel : public AlgorithmPanelBase {
 };
 
 } // namespace Panels::ColorBalance
+

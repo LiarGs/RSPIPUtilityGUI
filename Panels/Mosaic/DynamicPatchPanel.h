@@ -13,7 +13,7 @@ class DynamicPatchPanel : public MosaicPanelBase {
     explicit DynamicPatchPanel(QWidget *parent = nullptr);
 
     QString AlgorithmName() const override { return "DynamicPatch (动态补丁)"; }
-    bool ValidateInput() const override;
+    bool ValidateInput() override;
     std::function<bool()> BuildTask(const QString &globalSavePath) override;
 
   protected:
@@ -24,3 +24,4 @@ class DynamicPatchPanel : public MosaicPanelBase {
 };
 
 } // namespace Panels::Mosaic
+

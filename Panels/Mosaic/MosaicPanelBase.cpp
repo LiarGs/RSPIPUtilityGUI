@@ -43,13 +43,14 @@ bool MosaicPanelBase::_SaveResult(const RSPIP::GeoImage &result, const QString &
     return saved;
 }
 
-bool MosaicPanelBase::ValidateInput() const {
+bool MosaicPanelBase::ValidateInput() {
     if (_ImageSelector->Files().count() < 2) {
-        QMessageBox::warning(const_cast<MosaicPanelBase *>(this), "输入不足", "镶嵌至少需要两张影像。");
+        QMessageBox::warning(this, "输入不足", "镶嵌至少需要两张影像。");
         return false;
     }
     return true;
 }
 
 } // namespace Panels::Mosaic
+
 

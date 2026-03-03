@@ -13,7 +13,7 @@ class AdaptiveIsophotePatchPanel : public MosaicPanelBase {
     explicit AdaptiveIsophotePatchPanel(QWidget *parent = nullptr);
 
     QString AlgorithmName() const override { return "AdaptiveIsophotePatch (等照度自适应补丁)"; }
-    bool ValidateInput() const override;
+    bool ValidateInput() override;
     std::function<bool()> BuildTask(const QString &globalSavePath) override;
 
   protected:
@@ -24,3 +24,4 @@ class AdaptiveIsophotePatchPanel : public MosaicPanelBase {
 };
 
 } // namespace Panels::Mosaic
+

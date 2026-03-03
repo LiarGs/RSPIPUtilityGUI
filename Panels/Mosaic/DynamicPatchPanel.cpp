@@ -8,6 +8,10 @@ DynamicPatchPanel::DynamicPatchPanel(QWidget *parent) : MosaicPanelBase(parent) 
 
 void DynamicPatchPanel::_SetupUi() {
     auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
+    if (!layout) {
+        layout = new QVBoxLayout(this);
+        setLayout(layout);
+    }
 
     auto *maskGroup = new QGroupBox("输入云掩膜 (Cloud Masks)", this);
     auto *maskLayout = new QVBoxLayout(maskGroup);
@@ -22,12 +26,12 @@ void DynamicPatchPanel::_SetupUi() {
     layout->addStretch();
 }
 
-bool DynamicPatchPanel::ValidateInput() const {
+bool DynamicPatchPanel::ValidateInput() {
     if (!MosaicPanelBase::ValidateInput())
         return false;
 
     if (_MaskSelector->Files().count() != _ImageSelector->Files().count()) {
-        QMessageBox::warning(const_cast<DynamicPatchPanel *>(this), "数量不匹配",
+        QMessageBox::warning(this, "数量不匹配",
                              "DynamicPatch 算法要求掩膜文件数量必须与影像文件数量完全一致。");
         return false;
     }
@@ -82,5 +86,7 @@ std::function<bool()> DynamicPatchPanel::BuildTask(const QString &globalSavePath
 }
 
 } // namespace Panels::Mosaic
+
+
 
 

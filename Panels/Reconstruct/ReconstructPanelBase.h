@@ -24,7 +24,7 @@ class ReconstructPanelBase : public AlgorithmPanelBase {
   public:
     explicit ReconstructPanelBase(QWidget *parent = nullptr);
     ~ReconstructPanelBase() override = default;
-    bool ValidateInput() const override;
+    bool ValidateInput() override;
 
   protected:
     void _SetupUi() override;
@@ -37,3 +37,4 @@ class ReconstructPanelBase : public AlgorithmPanelBase {
 };
 
 } // namespace Panels::Reconstruct
+
