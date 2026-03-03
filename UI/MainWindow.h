@@ -8,6 +8,8 @@
 #include <QStackedWidget>
 #include <QTextEdit>
 
+class QDockWidget;
+
 namespace UI {
 
 namespace Pages {
@@ -30,16 +32,21 @@ class MainWindow : public QMainWindow {
     void OnLogMessage(const QString &msg);
     void OnPageExecutionStarted();
     void OnPageExecutionFinished(bool success);
+    void OnCurrentAlgorithmChanged();
 
   private:
     void _SetupUi();
     void _InitModules();
+    void _UpdateAlgorithmDescription();
 
     QComboBox *_AlgoSelector = nullptr;
     QStackedWidget *_ParamStack = nullptr;
     QLineEdit *_OutputPathEdit = nullptr;
+    QPushButton *_BrowseOutputBtn = nullptr;
     QPushButton *_RunBtn = nullptr;
     QTextEdit *_LogConsole = nullptr;
+    QTextEdit *_DescriptionView = nullptr;
+    QDockWidget *_LogDock = nullptr;
 
     QList<Pages::ModulePageBase *> _Pages;
 };

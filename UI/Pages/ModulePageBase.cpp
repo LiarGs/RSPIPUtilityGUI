@@ -57,11 +57,16 @@ void ModulePageBase::_RegisterAlgorithm(AlgorithmPanelBase *panel) {
     _PanelStack->addWidget(panel);
 
     connect(panel, &AlgorithmPanelBase::LogMessage, this, &ModulePageBase::LogMessage);
+
+    if (_PanelStack->count() == 1) {
+        emit CurrentAlgorithmChanged();
+    }
 }
 
 void ModulePageBase::OnModuleChanged(int index) {
     if (index >= 0 && index < _PanelStack->count()) {
         _PanelStack->setCurrentIndex(index);
+        emit CurrentAlgorithmChanged();
     }
 }
 

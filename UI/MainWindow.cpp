@@ -11,6 +11,8 @@
 #include <QMetaObject>
 #include <QPointer>
 #include <QSplitter>
+#include <QSizePolicy>
+#include <QTimer>
 #include <QVBoxLayout>
 
 namespace UI {
@@ -79,10 +81,10 @@ void MainWindow::_SetupUi() {
     QVBoxLayout *outputLayout = new QVBoxLayout(outputGroup);
     _OutputPathEdit = new QLineEdit(this);
     _OutputPathEdit->setPlaceholderText(tr("留空则自动生成临时文件..."));
-    QPushButton *browseOutBtn = new QPushButton(tr("选择保存路径..."), this);
-    connect(browseOutBtn, &QPushButton::clicked, this, &MainWindow::OnBrowseOutput);
+    _BrowseOutputBtn = new QPushButton(tr("选择保存路径..."), this);
+    connect(_BrowseOutputBtn, &QPushButton::clicked, this, &MainWindow::OnBrowseOutput);
     outputLayout->addWidget(_OutputPathEdit);
-    outputLayout->addWidget(browseOutBtn);
+    outputLayout->addWidget(_BrowseOutputBtn);
     controlLayout->addWidget(outputGroup);
     controlLayout->addSpacing(10);
 
@@ -90,9 +92,12 @@ void MainWindow::_SetupUi() {
     _RunBtn->setMinimumHeight(50);
     controlLayout->addWidget(_RunBtn);
 
-    QGroupBox *displayGroup = new QGroupBox(tr("处理结果展示"), this);
+    QGroupBox *displayGroup = new QGroupBox(tr("算法说明"), this);
     QVBoxLayout *displayLayout = new QVBoxLayout(displayGroup);
-    Q_UNUSED(displayLayout);
+    _DescriptionView = new QTextEdit(this);
+    _DescriptionView->setReadOnly(true);
+    _DescriptionView->setPlaceholderText(tr("当前算法说明将在这里显示。"));
+    displayLayout->addWidget(_DescriptionView);
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal, this);
     mainSplitter->addWidget(controlPanel);
@@ -100,12 +105,22 @@ void MainWindow::_SetupUi() {
     mainSplitter->setStretchFactor(1, 1);
     mainLayout->addWidget(mainSplitter);
 
-    QDockWidget *logDock = new QDockWidget(tr("控制台日志"), this);
-    logDock->setAllowedAreas(Qt::BottomDockWidgetArea);
+    _LogDock = new QDockWidget(tr("控制台日志"), this);
+    _LogDock->setAllowedAreas(Qt::BottomDockWidgetArea);
+    _LogDock->setFeatures(QDockWidget::DockWidgetMovable |
+                          QDockWidget::DockWidgetFloatable |
+                          QDockWidget::DockWidgetClosable);
+    _LogDock->setMinimumHeight(120);
     _LogConsole = new QTextEdit(this);
     _LogConsole->setReadOnly(true);
-    logDock->setWidget(_LogConsole);
-    addDockWidget(Qt::BottomDockWidgetArea, logDock);
+    _LogConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    _LogDock->setWidget(_LogConsole);
+    addDockWidget(Qt::BottomDockWidgetArea, _LogDock);
+    QTimer::singleShot(0, this, [this]() {
+        if (_LogDock) {
+            resizeDocks({_LogDock}, {220}, Qt::Vertical);
+        }
+    });
 
     connect(_AlgoSelector, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::OnAlgorithmChanged);
@@ -126,12 +141,14 @@ void MainWindow::_InitModules() {
         connect(page, &ModulePageBase::LogMessage, this, &MainWindow::OnLogMessage);
         connect(page, &ModulePageBase::ExecutionStarted, this, &MainWindow::OnPageExecutionStarted);
         connect(page, &ModulePageBase::ExecutionFinished, this, &MainWindow::OnPageExecutionFinished);
+        connect(page, &ModulePageBase::CurrentAlgorithmChanged, this, &MainWindow::OnCurrentAlgorithmChanged);
     }
 }
 
 void MainWindow::OnAlgorithmChanged(int index) {
     if (index >= 0 && index < _ParamStack->count()) {
         _ParamStack->setCurrentIndex(index);
+        _UpdateAlgorithmDescription();
     }
 }
 
@@ -154,15 +171,23 @@ void MainWindow::OnLogMessage(const QString &msg) {
     _LogConsole->append(msg);
 }
 
+void MainWindow::OnCurrentAlgorithmChanged() {
+    _UpdateAlgorithmDescription();
+}
+
 void MainWindow::OnPageExecutionStarted() {
     _RunBtn->setEnabled(false);
     _AlgoSelector->setEnabled(false);
+    _OutputPathEdit->setEnabled(false);
+    _BrowseOutputBtn->setEnabled(false);
     _RunBtn->setText(tr("处理中..."));
 }
 
 void MainWindow::OnPageExecutionFinished(bool success) {
     _RunBtn->setEnabled(true);
     _AlgoSelector->setEnabled(true);
+    _OutputPathEdit->setEnabled(true);
+    _BrowseOutputBtn->setEnabled(true);
     _RunBtn->setText(tr(">>> 执行处理 >>>"));
 
     if (success) {
@@ -170,6 +195,26 @@ void MainWindow::OnPageExecutionFinished(bool success) {
     } else {
         OnLogMessage("<span style='color:#FF7F50;'>任务执行失败，请查看上方日志。</span>");
     }
+}
+
+void MainWindow::_UpdateAlgorithmDescription() {
+    if (!_DescriptionView) {
+        return;
+    }
+
+    ModulePageBase *currentPage = dynamic_cast<ModulePageBase *>(_ParamStack->currentWidget());
+    if (!currentPage) {
+        _DescriptionView->setPlainText(tr("未找到当前页面。"));
+        return;
+    }
+
+    auto *panel = currentPage->CurrentPanel();
+    if (!panel) {
+        _DescriptionView->setPlainText(tr("未找到当前算法面板。"));
+        return;
+    }
+
+    _DescriptionView->setPlainText(panel->AlgorithmDescription());
 }
 
 } // namespace UI

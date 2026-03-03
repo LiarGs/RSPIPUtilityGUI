@@ -19,6 +19,14 @@ class AlgorithmPanelBase : public QWidget {
     virtual QString AlgorithmName() const = 0;
 
     /**
+     * @brief 算法说明（默认占位，可由具体 Panel 覆写）
+     */
+    virtual QString AlgorithmDescription() const {
+        return QString("【%1】\n\nTODO: 在此补充算法说明。\n")
+            .arg(AlgorithmName());
+    }
+
+    /**
      * @brief 验证面板上的参数输入是否合法
      * @return true 合法, false 不合法 (Panel 内部应弹窗提示)
      */

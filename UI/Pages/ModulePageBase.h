@@ -29,6 +29,7 @@ class ModulePageBase : public QWidget {
     void LogMessage(const QString &msg);
     void ExecutionStarted();
     void ExecutionFinished(bool success);
+    void CurrentAlgorithmChanged();
 
   protected:
     virtual void _SetupUi();
