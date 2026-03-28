@@ -76,6 +76,7 @@ std::function<bool()> IsophotePanel::BuildTask(const QString &globalSavePath) {
             RSPIP::Algorithm::ReconstructAlgorithm::IsophoteConstrain algorithm(*targetImage, *referImage, *maskImage);
             algorithm.SetMaxIterations(currentMaxIterations);
             algorithm.SetEpsilon(currentEpsilon);
+            SuperDebug::ScopeTimer algorithmTimer("Algorithm Execution");
             algorithm.Execute();
 
             return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "ReconstructIsophote");

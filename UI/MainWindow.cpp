@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "Pages/CloudDetectionPage.h"
 #include "Pages/ColorBalancePage.h"
+#include "Pages/EvaluationPage.h"
 #include "Pages/MosaicPage.h"
 #include "Pages/ReconstructPage.h"
 #include "Util/SuperDebug.hpp"
@@ -134,6 +135,7 @@ void MainWindow::_InitModules() {
     pages << new Pages::ReconstructPage(this);
     pages << new Pages::ColorBalancePage(this);
     pages << new Pages::CloudDetectionPage(this);
+    pages << new Pages::EvaluationPage(this);
 
     for (auto page : pages) {
         _Pages.append(page);
@@ -155,10 +157,27 @@ void MainWindow::OnAlgorithmChanged(int index) {
 }
 
 void MainWindow::OnBrowseOutput() {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("保存结果"), "",
-                                                    tr("GeoTIFF (*.tif);;Text (*.txt)"));
-    if (!fileName.isEmpty()) {
-        _OutputPathEdit->setText(fileName);
+    QFileDialog dialog(this, tr("保存结果"));
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setDefaultSuffix(QString());
+    dialog.setNameFilters({
+        tr("所有文件 (*)"),
+        tr("GeoTIFF (*.tif *.tiff)"),
+        tr("Text (*.txt)")
+    });
+    dialog.selectNameFilter(tr("所有文件 (*)"));
+
+    const QString currentPath = _OutputPathEdit ? _OutputPathEdit->text().trimmed() : QString();
+    if (!currentPath.isEmpty()) {
+        dialog.selectFile(currentPath);
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        const QStringList selectedFiles = dialog.selectedFiles();
+        if (!selectedFiles.isEmpty()) {
+            _OutputPathEdit->setText(selectedFiles.first());
+        }
     }
 }
 
