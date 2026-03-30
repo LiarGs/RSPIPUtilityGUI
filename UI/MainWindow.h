@@ -48,6 +48,7 @@ class MainWindow : public QMainWindow {
     QTextEdit *_LogConsole = nullptr;
     QTextEdit *_DescriptionView = nullptr;
     QDockWidget *_LogDock = nullptr;
+    QDockWidget *_DescriptionDock = nullptr;
 
     QList<Pages::ModulePageBase *> _Pages;
 };

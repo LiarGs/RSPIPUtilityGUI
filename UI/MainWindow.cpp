@@ -94,29 +94,30 @@ void MainWindow::_SetupUi() {
     _RunBtn->setMinimumHeight(50);
     controlLayout->addWidget(_RunBtn);
 
-    QGroupBox *displayGroup = new QGroupBox(tr("算法说明"), this);
-    QVBoxLayout *displayLayout = new QVBoxLayout(displayGroup);
-    _DescriptionView = new QTextEdit(this);
-    _DescriptionView->setReadOnly(true);
-    _DescriptionView->setPlaceholderText(tr("当前算法说明将在这里显示。"));
-    displayLayout->addWidget(_DescriptionView);
+    QGroupBox *logGroup = new QGroupBox(tr("控制台日志"), this);
+    QVBoxLayout *logLayout = new QVBoxLayout(logGroup);
+    _LogConsole = new QTextEdit(this);
+    _LogConsole->setReadOnly(true);
+    _LogConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    logLayout->addWidget(_LogConsole);
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal, this);
     mainSplitter->addWidget(controlPanel);
-    mainSplitter->addWidget(displayGroup);
+    mainSplitter->addWidget(logGroup);
     mainSplitter->setStretchFactor(1, 1);
     mainLayout->addWidget(mainSplitter);
 
-    _LogDock = new QDockWidget(tr("控制台日志"), this);
+    _LogDock = new QDockWidget(tr("算法说明"), this);
     _LogDock->setAllowedAreas(Qt::BottomDockWidgetArea);
     _LogDock->setFeatures(QDockWidget::DockWidgetMovable |
                           QDockWidget::DockWidgetFloatable |
                           QDockWidget::DockWidgetClosable);
     _LogDock->setMinimumHeight(120);
-    _LogConsole = new QTextEdit(this);
-    _LogConsole->setReadOnly(true);
-    _LogConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    _LogDock->setWidget(_LogConsole);
+    _DescriptionView = new QTextEdit(this);
+    _DescriptionView->setReadOnly(true);
+    _DescriptionView->setPlaceholderText(tr("当前算法说明将在这里显示。"));
+    _DescriptionView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    _LogDock->setWidget(_DescriptionView);
     addDockWidget(Qt::BottomDockWidgetArea, _LogDock);
     QTimer::singleShot(0, this, [this]() {
         if (_LogDock) {
