@@ -1,6 +1,8 @@
 #include "PixelThresholdPanel.h"
 
+#include <QDir>
 #include <QFileInfo>
+#include <QLabel>
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QVBoxLayout>
@@ -18,8 +20,8 @@ PixelThresholdPanel::PixelThresholdPanel(QWidget *parent) : AlgorithmPanelBase(p
 QString PixelThresholdPanel::AlgorithmDescription() const {
     return QString("【%1】\n\n"
                    "功能: 对输入影像列表批量执行云检测，输出二值云掩膜。\n"
-                   "方法: 使用像素阈值法，像素亮度大于阈值时判定为云。\n"
-                   "参数: 阈值范围 0-255，默认 240。")
+                   "方法: 使用像素阈值法，可基于灰度或蓝色波段进行阈值检测。\n"
+                   "参数: 检测通道(灰度/蓝色波段)、阈值范围 0-255，默认 240。")
         .arg(AlgorithmName());
 }
 
@@ -31,6 +33,12 @@ void PixelThresholdPanel::_SetupUi() {
     QString imgFilter = "Images (*.tif *.tiff *.png *.jpg *.bmp)";
     _InputSelector = new FileListWidget("输入影像列表 (Inputs):", imgFilter, this);
     layout->addWidget(_InputSelector);
+
+    layout->addWidget(new QLabel("阈值检测通道:", this));
+    _ModeCombo = new QComboBox(this);
+    _ModeCombo->addItem("灰度", static_cast<int>(RSPIP::Algorithm::CloudDetectionAlgorithm::PixelThresholdMode::Gray));
+    _ModeCombo->addItem("蓝色波段", static_cast<int>(RSPIP::Algorithm::CloudDetectionAlgorithm::PixelThresholdMode::BlueBandOnly));
+    layout->addWidget(_ModeCombo);
 
     _ThresholdSpin = new QSpinBox(this);
     _ThresholdSpin->setRange(0, 255);
@@ -52,23 +60,32 @@ bool PixelThresholdPanel::ValidateInput() {
 
 std::function<bool()> PixelThresholdPanel::BuildTask(const QString &globalSavePath) {
     const QStringList inputFiles = _InputSelector->Files();
+    const auto mode = static_cast<RSPIP::Algorithm::CloudDetectionAlgorithm::PixelThresholdMode>(
+        _ModeCombo->currentData().toInt());
+    const QString modeText = _ModeCombo->currentText();
     const unsigned char threshold = static_cast<unsigned char>(_ThresholdSpin->value());
 
-    return [this, inputFiles, threshold, globalSavePath]() {
-        PostLog(QString(">> [CloudDetection::PixelThreshold] 待处理影像数量: %1").arg(inputFiles.count()));
+    return [this, inputFiles, mode, modeText, threshold, globalSavePath]() {
+        PostLog(QString(">> [CloudDetection::PixelThreshold] 待处理影像数量: %1，检测通道: %2")
+                    .arg(inputFiles.count())
+                    .arg(modeText));
 
         try {
             QString outputDir;
             QString outputPrefix;
+            bool treatAsDirectory = false;
 
             if (globalSavePath.isEmpty()) {
                 outputDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
                 outputPrefix = "cloud_mask";
+                treatAsDirectory = true;
                 PostLog(">> 使用临时目录保存结果: " + outputDir);
             } else {
                 QFileInfo outputInfo(globalSavePath);
-                if (outputInfo.isDir()) {
-                    outputDir = outputInfo.absoluteFilePath();
+                treatAsDirectory = outputInfo.isDir() ||
+                                   (!outputInfo.exists() && outputInfo.suffix().isEmpty());
+                if (treatAsDirectory) {
+                    outputDir = QDir::cleanPath(globalSavePath);
                     outputPrefix = "cloud_mask";
                 } else {
                     outputDir = outputInfo.absolutePath();
@@ -79,7 +96,18 @@ std::function<bool()> PixelThresholdPanel::BuildTask(const QString &globalSavePa
                 PostLog(">> 使用指定输出目录: " + outputDir);
             }
 
-            const bool singleExactOutput = (inputFiles.count() == 1 && !globalSavePath.isEmpty() && !QFileInfo(globalSavePath).isDir());
+            if (outputDir.isEmpty()) {
+                PostLog("错误: 输出目录无效。");
+                return false;
+            }
+            if (!QDir().mkpath(outputDir)) {
+                PostLog("错误: 无法创建输出目录: " + outputDir);
+                return false;
+            }
+
+            const bool singleExactOutput = (inputFiles.count() == 1 &&
+                                            !globalSavePath.isEmpty() &&
+                                            !treatAsDirectory);
 
             int successCount = 0;
             for (int i = 0; i < inputFiles.count(); ++i) {
@@ -94,9 +122,18 @@ std::function<bool()> PixelThresholdPanel::BuildTask(const QString &globalSavePa
 
                 RSPIP::Algorithm::CloudDetectionAlgorithm::PixelThreshold algorithm(*inputImage);
                 algorithm.SetThreshold(threshold);
-                PostLog(QString(">> [%1/%2] 正在执行云检测，阈值=%3 ...")
+                algorithm.SetThresholdMode(mode);
+
+                if (mode == RSPIP::Algorithm::CloudDetectionAlgorithm::PixelThresholdMode::BlueBandOnly &&
+                    inputImage->GetBandCounts() < 3) {
+                    PostLog("错误: 当前影像波段数不足 3，无法使用蓝色波段阈值检测，已跳过。");
+                    continue;
+                }
+
+                PostLog(QString(">> [%1/%2] 正在执行云检测，模式=%3，阈值=%4 ...")
                             .arg(i + 1)
                             .arg(inputFiles.count())
+                            .arg(modeText)
                             .arg(static_cast<int>(threshold)));
                 algorithm.Execute();
 

@@ -1,15 +1,16 @@
 ﻿#pragma once
+#include "Common/FileListWidget.h"
 #include "Common/FileSelectWidget.h"
 #include "Panels/AlgorithmPanelBase.h"
 
 namespace Panels::ColorBalance {
 
+using UI::Common::FileListWidget;
 using UI::Common::FileSelectWidget;
 
 /**
  * @brief MatchStatistics 算法的具体实现面板
- * @details MatchStatistics 需要 Target/Refer/Mask 三个输入，
- * 产出的是一个 Image 结果。
+ * @details 支持单张基准图 + 多张待匀色影像 + 可选对应掩膜的一对一批处理。
  */
 class MatchStatisticsPanel : public AlgorithmPanelBase {
     Q_OBJECT
@@ -18,6 +19,9 @@ class MatchStatisticsPanel : public AlgorithmPanelBase {
     ~MatchStatisticsPanel() override = default;
 
     QString AlgorithmName() const override { return "MatchStatistics (统计学方法)"; }
+    OutputSelectionMode PreferredOutputSelectionMode() const override {
+        return OutputSelectionMode::Directory;
+    }
 
     bool ValidateInput() override;
     std::function<bool()> BuildTask(const QString &globalSavePath) override;
@@ -26,9 +30,9 @@ class MatchStatisticsPanel : public AlgorithmPanelBase {
     void _SetupUi() override;
 
   private:
-    FileSelectWidget *_TargetSelect = nullptr;
     FileSelectWidget *_ReferSelect = nullptr;
-    FileSelectWidget *_MaskSelect = nullptr;
+    FileListWidget *_InputSelector = nullptr;
+    FileListWidget *_MaskSelector = nullptr;
 };
 
 } // namespace Panels::ColorBalance

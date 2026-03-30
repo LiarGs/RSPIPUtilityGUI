@@ -153,10 +153,31 @@ void MainWindow::OnAlgorithmChanged(int index) {
     if (index >= 0 && index < _ParamStack->count()) {
         _ParamStack->setCurrentIndex(index);
         _UpdateAlgorithmDescription();
+        _UpdateOutputHints();
     }
 }
 
 void MainWindow::OnBrowseOutput() {
+    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
+    auto *currentPanel = currentPage ? currentPage->CurrentPanel() : nullptr;
+    const bool useDirectoryMode =
+        currentPanel &&
+        currentPanel->PreferredOutputSelectionMode() ==
+            Panels::AlgorithmPanelBase::OutputSelectionMode::Directory;
+
+    const QString currentPath = _OutputPathEdit ? _OutputPathEdit->text().trimmed() : QString();
+
+    if (useDirectoryMode) {
+        const QString selectedDir = QFileDialog::getExistingDirectory(
+            this,
+            tr("选择输出目录"),
+            currentPath);
+        if (!selectedDir.isEmpty()) {
+            _OutputPathEdit->setText(selectedDir);
+        }
+        return;
+    }
+
     QFileDialog dialog(this, tr("保存结果"));
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
@@ -168,7 +189,6 @@ void MainWindow::OnBrowseOutput() {
     });
     dialog.selectNameFilter(tr("所有文件 (*)"));
 
-    const QString currentPath = _OutputPathEdit ? _OutputPathEdit->text().trimmed() : QString();
     if (!currentPath.isEmpty()) {
         dialog.selectFile(currentPath);
     }
@@ -194,6 +214,7 @@ void MainWindow::OnLogMessage(const QString &msg) {
 
 void MainWindow::OnCurrentAlgorithmChanged() {
     _UpdateAlgorithmDescription();
+    _UpdateOutputHints();
 }
 
 void MainWindow::OnPageExecutionStarted() {
@@ -236,6 +257,24 @@ void MainWindow::_UpdateAlgorithmDescription() {
     }
 
     _DescriptionView->setPlainText(panel->AlgorithmDescription());
+}
+
+void MainWindow::_UpdateOutputHints() {
+    if (!_OutputPathEdit || !_BrowseOutputBtn) {
+        return;
+    }
+
+    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
+    auto *panel = currentPage ? currentPage->CurrentPanel() : nullptr;
+    const bool useDirectoryMode =
+        panel &&
+        panel->PreferredOutputSelectionMode() ==
+            Panels::AlgorithmPanelBase::OutputSelectionMode::Directory;
+
+    _OutputPathEdit->setPlaceholderText(useDirectoryMode
+                                            ? tr("留空则自动生成临时目录结果，或填写输出目录...")
+                                            : tr("留空则自动生成临时文件..."));
+    _BrowseOutputBtn->setText(useDirectoryMode ? tr("选择输出目录...") : tr("选择保存路径..."));
 }
 
 } // namespace UI

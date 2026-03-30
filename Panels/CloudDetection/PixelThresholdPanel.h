@@ -2,6 +2,7 @@
 
 #include "Common/FileListWidget.h"
 #include "Panels/AlgorithmPanelBase.h"
+#include <QComboBox>
 #include <QSpinBox>
 
 namespace Panels::CloudDetection {
@@ -15,6 +16,9 @@ class PixelThresholdPanel : public AlgorithmPanelBase {
     ~PixelThresholdPanel() override = default;
 
     QString AlgorithmName() const override { return "PixelThreshold (像素阈值法)"; }
+    OutputSelectionMode PreferredOutputSelectionMode() const override {
+        return OutputSelectionMode::Directory;
+    }
     QString AlgorithmDescription() const override;
     bool ValidateInput() override;
     std::function<bool()> BuildTask(const QString &globalSavePath) override;
@@ -24,6 +28,7 @@ class PixelThresholdPanel : public AlgorithmPanelBase {
 
   private:
     FileListWidget *_InputSelector = nullptr;
+    QComboBox *_ModeCombo = nullptr;
     QSpinBox *_ThresholdSpin = nullptr;
 };
 

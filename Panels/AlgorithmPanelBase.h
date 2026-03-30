@@ -13,10 +13,19 @@ namespace Panels {
 class AlgorithmPanelBase : public QWidget {
     Q_OBJECT
   public:
+    enum class OutputSelectionMode {
+        FilePath,
+        Directory
+    };
+
     explicit AlgorithmPanelBase(QWidget *parent = nullptr) : QWidget(parent) {}
     virtual ~AlgorithmPanelBase() = default;
 
     virtual QString AlgorithmName() const = 0;
+
+    virtual OutputSelectionMode PreferredOutputSelectionMode() const {
+        return OutputSelectionMode::FilePath;
+    }
 
     /**
      * @brief 算法说明（默认占位，可由具体 Panel 覆写）

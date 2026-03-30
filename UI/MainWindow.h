@@ -38,6 +38,7 @@ class MainWindow : public QMainWindow {
     void _SetupUi();
     void _InitModules();
     void _UpdateAlgorithmDescription();
+    void _UpdateOutputHints();
 
     QComboBox *_AlgoSelector = nullptr;
     QStackedWidget *_ParamStack = nullptr;
