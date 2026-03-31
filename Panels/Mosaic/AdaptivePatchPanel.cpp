@@ -1,12 +1,12 @@
-#include "AdaptiveIsophotePatchPanel.h"
+#include "AdaptivePatchPanel.h"
 
 namespace Panels::Mosaic {
 
-AdaptiveIsophotePatchPanel::AdaptiveIsophotePatchPanel(QWidget *parent) : MosaicPanelBase(parent) {
+AdaptivePatchPanel::AdaptivePatchPanel(QWidget *parent) : MosaicPanelBase(parent) {
     _SetupUi();
 }
 
-void AdaptiveIsophotePatchPanel::_SetupUi() {
+void AdaptivePatchPanel::_SetupUi() {
     auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
     if (!layout) {
         layout = new QVBoxLayout(this);
@@ -21,50 +21,29 @@ void AdaptiveIsophotePatchPanel::_SetupUi() {
                                        "Images (*.tif *.tiff *.png *.jpg)",
                                        this);
     maskLayout->addWidget(_MaskSelector);
+
     layout->addWidget(maskGroup);
-
-    auto *solverGroup = new QGroupBox("求解参数", this);
-    auto *solverLayout = new QVBoxLayout(solverGroup);
-    solverLayout->setContentsMargins(5, 10, 5, 5);
-
-    _MaxIterationsSpin = new QSpinBox(this);
-    _MaxIterationsSpin->setRange(1, 1000000);
-    _MaxIterationsSpin->setValue(10000);
-    _MaxIterationsSpin->setPrefix("最大迭代次数: ");
-    solverLayout->addWidget(_MaxIterationsSpin);
-
-    _EpsilonSpin = new QDoubleSpinBox(this);
-    _EpsilonSpin->setRange(0.0, 1e9);
-    _EpsilonSpin->setDecimals(6);
-    _EpsilonSpin->setSingleStep(0.1);
-    _EpsilonSpin->setValue(1.0);
-    _EpsilonSpin->setPrefix("残差: ");
-    solverLayout->addWidget(_EpsilonSpin);
-
-    layout->addWidget(solverGroup);
     layout->addStretch();
 }
 
-bool AdaptiveIsophotePatchPanel::ValidateInput() {
+bool AdaptivePatchPanel::ValidateInput() {
     if (!MosaicPanelBase::ValidateInput())
         return false;
 
     if (_MaskSelector->Files().count() != _ImageSelector->Files().count()) {
         QMessageBox::warning(this, "数量不匹配",
-                             "AdaptiveIsophotePatch 算法要求掩膜文件数量必须与影像文件数量完全一致。");
+                             "AdaptivePatch 算法要求掩膜文件数量必须与影像文件数量完全一致。");
         return false;
     }
     return true;
 }
 
-std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globalSavePath) {
+std::function<bool()> AdaptivePatchPanel::BuildTask(const QString &globalSavePath) {
     const QStringList imageFiles = _ImageSelector->Files();
     const QStringList maskFiles = _MaskSelector->Files();
-    const int maxIterations = _MaxIterationsSpin ? _MaxIterationsSpin->value() : 10000;
-    const double epsilon = _EpsilonSpin ? _EpsilonSpin->value() : 1.0;
 
-    return [this, imageFiles, maskFiles, maxIterations, epsilon, globalSavePath]() {
-        PostLog(">> [AdaptiveIsophotePatch] 开始执行...");
+    return [this, imageFiles, maskFiles, globalSavePath]() {
+        PostLog(">> [AdaptivePatch] 开始执行...");
 
         try {
             std::vector<RSPIP::GeoImage> images;
@@ -93,16 +72,11 @@ std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globa
                 }
             }
 
-            RSPIP::Algorithm::MosaicAlgorithm::AdaptiveIsophotePatch algorithm(images, masks);
-            algorithm.SetMaxIterations(maxIterations);
-            algorithm.SetEpsilon(epsilon);
-            PostLog(QString(">> 求解参数: 最大迭代次数=%1, 残差=%2")
-                        .arg(maxIterations)
-                        .arg(epsilon, 0, 'g', 6));
-            PostLog(">> 正在执行等照度自适应补丁镶嵌 (耗时操作)...");
+            RSPIP::Algorithm::MosaicAlgorithm::AdaptivePatch algorithm(images, masks);
+            PostLog(">> 正在执行自适应补丁镶嵌 (耗时操作)...");
             algorithm.Execute();
 
-            return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "Mosaic_AdaptiveIsophote");
+            return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "Mosaic_AdaptivePatch");
 
         } catch (const std::exception &e) {
             PostLog(QString("异常: %1").arg(e.what()));

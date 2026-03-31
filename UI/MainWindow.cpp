@@ -14,6 +14,7 @@
 #include <QPointer>
 #include <QSplitter>
 #include <QSizePolicy>
+#include <QScrollBar>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -30,7 +31,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle(tr("RSPIP 工具库 GUI"));
 
     QPointer<MainWindow> self(this);
-    SuperDebug::SetLoggerCallback([self](SuperDebug::Level level, const std::string &msg) {
+    SuperDebug::SetLoggerCallback([self](SuperDebug::Level level, const std::string &msg,
+                                         SuperDebug::LogUpdateMode updateMode) {
         if (!self) {
             return;
         }
@@ -54,12 +56,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
         QMetaObject::invokeMethod(self, "OnLogMessage",
                                   Qt::QueuedConnection,
-                                  Q_ARG(QString, formattedMsg));
+                                  Q_ARG(QString, formattedMsg),
+                                  Q_ARG(bool, updateMode == SuperDebug::LogUpdateMode::ReplaceLast));
     });
 }
 
 MainWindow::~MainWindow() {
-    SuperDebug::SetLoggerCallback([](SuperDebug::Level, const std::string &) {});
+    SuperDebug::SetLoggerCallback([](SuperDebug::Level, const std::string &, SuperDebug::LogUpdateMode) {});
 }
 
 void MainWindow::_SetupUi() {
@@ -143,7 +146,9 @@ void MainWindow::_InitModules() {
         _ParamStack->addWidget(page);
         _AlgoSelector->addItem(page->ModuleName());
 
-        connect(page, &ModulePageBase::LogMessage, this, &MainWindow::OnLogMessage);
+        connect(page, &ModulePageBase::LogMessage, this, [this](const QString &msg) {
+            OnLogMessage(msg, false);
+        });
         connect(page, &ModulePageBase::ExecutionStarted, this, &MainWindow::OnPageExecutionStarted);
         connect(page, &ModulePageBase::ExecutionFinished, this, &MainWindow::OnPageExecutionFinished);
         connect(page, &ModulePageBase::CurrentAlgorithmChanged, this, &MainWindow::OnCurrentAlgorithmChanged);
@@ -209,8 +214,27 @@ void MainWindow::OnExecuteClicked() {
     }
 }
 
-void MainWindow::OnLogMessage(const QString &msg) {
-    _LogConsole->append(msg);
+void MainWindow::OnLogMessage(const QString &msg, bool replaceLast) {
+    if (!_LogConsole) {
+        return;
+    }
+
+    if (replaceLast) {
+        if (_InlineLogIndex >= 0 && _InlineLogIndex < _LogEntries.size()) {
+            _LogEntries[_InlineLogIndex] = msg;
+        } else {
+            _LogEntries.append(msg);
+            _InlineLogIndex = _LogEntries.size() - 1;
+        }
+    } else {
+        _LogEntries.append(msg);
+        _InlineLogIndex = -1;
+    }
+
+    _LogConsole->setHtml(_LogEntries.join("<br>"));
+    if (QScrollBar *scrollBar = _LogConsole->verticalScrollBar()) {
+        scrollBar->setValue(scrollBar->maximum());
+    }
 }
 
 void MainWindow::OnCurrentAlgorithmChanged() {

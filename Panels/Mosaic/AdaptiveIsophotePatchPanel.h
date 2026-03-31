@@ -1,5 +1,7 @@
-﻿#pragma once
+#pragma once
 #include "MosaicPanelBase.h"
+#include <QDoubleSpinBox>
+#include <QSpinBox>
 
 namespace Panels::Mosaic {
 
@@ -21,6 +23,8 @@ class AdaptiveIsophotePatchPanel : public MosaicPanelBase {
 
   private:
     FileListWidget *_MaskSelector = nullptr;
+    QSpinBox *_MaxIterationsSpin = nullptr;
+    QDoubleSpinBox *_EpsilonSpin = nullptr;
 };
 
 } // namespace Panels::Mosaic

@@ -6,6 +6,7 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QStringList>
 #include <QTextEdit>
 
 class QDockWidget;
@@ -29,7 +30,7 @@ class MainWindow : public QMainWindow {
     void OnAlgorithmChanged(int index);
     void OnBrowseOutput();
     void OnExecuteClicked();
-    void OnLogMessage(const QString &msg);
+    void OnLogMessage(const QString &msg, bool replaceLast = false);
     void OnPageExecutionStarted();
     void OnPageExecutionFinished(bool success);
     void OnCurrentAlgorithmChanged();
@@ -49,6 +50,8 @@ class MainWindow : public QMainWindow {
     QTextEdit *_DescriptionView = nullptr;
     QDockWidget *_LogDock = nullptr;
     QDockWidget *_DescriptionDock = nullptr;
+    QStringList _LogEntries;
+    int _InlineLogIndex = -1;
 
     QList<Pages::ModulePageBase *> _Pages;
 };
