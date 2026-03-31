@@ -23,9 +23,9 @@ class AdaptiveIsophotePatchPanel : public MosaicPanelBase {
 
   private:
     FileListWidget *_MaskSelector = nullptr;
+    QSpinBox *_StripWidthSpin = nullptr;
     QSpinBox *_MaxIterationsSpin = nullptr;
     QDoubleSpinBox *_EpsilonSpin = nullptr;
 };
 
 } // namespace Panels::Mosaic
-

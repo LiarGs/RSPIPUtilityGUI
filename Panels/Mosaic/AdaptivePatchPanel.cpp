@@ -21,8 +21,19 @@ void AdaptivePatchPanel::_SetupUi() {
                                        "Images (*.tif *.tiff *.png *.jpg)",
                                        this);
     maskLayout->addWidget(_MaskSelector);
-
     layout->addWidget(maskGroup);
+
+    auto *parameterGroup = new QGroupBox("镶嵌参数", this);
+    auto *parameterLayout = new QVBoxLayout(parameterGroup);
+    parameterLayout->setContentsMargins(5, 10, 5, 5);
+
+    _StripWidthSpin = new QSpinBox(this);
+    _StripWidthSpin->setRange(1, 1000000);
+    _StripWidthSpin->setValue(32);
+    _StripWidthSpin->setPrefix("条带宽度: ");
+    parameterLayout->addWidget(_StripWidthSpin);
+
+    layout->addWidget(parameterGroup);
     layout->addStretch();
 }
 
@@ -41,8 +52,9 @@ bool AdaptivePatchPanel::ValidateInput() {
 std::function<bool()> AdaptivePatchPanel::BuildTask(const QString &globalSavePath) {
     const QStringList imageFiles = _ImageSelector->Files();
     const QStringList maskFiles = _MaskSelector->Files();
+    const int stripWidth = _StripWidthSpin ? _StripWidthSpin->value() : 32;
 
-    return [this, imageFiles, maskFiles, globalSavePath]() {
+    return [this, imageFiles, maskFiles, stripWidth, globalSavePath]() {
         PostLog(">> [AdaptivePatch] 开始执行...");
 
         try {
@@ -73,6 +85,8 @@ std::function<bool()> AdaptivePatchPanel::BuildTask(const QString &globalSavePat
             }
 
             RSPIP::Algorithm::MosaicAlgorithm::AdaptivePatch algorithm(images, masks);
+            algorithm.SetStripWidth(stripWidth);
+            PostLog(QString(">> 镶嵌参数: 条带宽度=%1").arg(stripWidth));
             PostLog(">> 正在执行自适应补丁镶嵌 (耗时操作)...");
             algorithm.Execute();
 
@@ -86,4 +100,3 @@ std::function<bool()> AdaptivePatchPanel::BuildTask(const QString &globalSavePat
 }
 
 } // namespace Panels::Mosaic
-

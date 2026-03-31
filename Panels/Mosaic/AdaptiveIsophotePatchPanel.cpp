@@ -27,6 +27,12 @@ void AdaptiveIsophotePatchPanel::_SetupUi() {
     auto *solverLayout = new QVBoxLayout(solverGroup);
     solverLayout->setContentsMargins(5, 10, 5, 5);
 
+    _StripWidthSpin = new QSpinBox(this);
+    _StripWidthSpin->setRange(1, 1000000);
+    _StripWidthSpin->setValue(32);
+    _StripWidthSpin->setPrefix("条带宽度: ");
+    solverLayout->addWidget(_StripWidthSpin);
+
     _MaxIterationsSpin = new QSpinBox(this);
     _MaxIterationsSpin->setRange(1, 1000000);
     _MaxIterationsSpin->setValue(10000);
@@ -60,10 +66,11 @@ bool AdaptiveIsophotePatchPanel::ValidateInput() {
 std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globalSavePath) {
     const QStringList imageFiles = _ImageSelector->Files();
     const QStringList maskFiles = _MaskSelector->Files();
+    const int stripWidth = _StripWidthSpin ? _StripWidthSpin->value() : 32;
     const int maxIterations = _MaxIterationsSpin ? _MaxIterationsSpin->value() : 10000;
     const double epsilon = _EpsilonSpin ? _EpsilonSpin->value() : 1.0;
 
-    return [this, imageFiles, maskFiles, maxIterations, epsilon, globalSavePath]() {
+    return [this, imageFiles, maskFiles, stripWidth, maxIterations, epsilon, globalSavePath]() {
         PostLog(">> [AdaptiveIsophotePatch] 开始执行...");
 
         try {
@@ -94,9 +101,11 @@ std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globa
             }
 
             RSPIP::Algorithm::MosaicAlgorithm::AdaptiveIsophotePatch algorithm(images, masks);
+            algorithm.SetStripWidth(stripWidth);
             algorithm.SetMaxIterations(maxIterations);
             algorithm.SetEpsilon(epsilon);
-            PostLog(QString(">> 求解参数: 最大迭代次数=%1, 残差=%2")
+            PostLog(QString(">> 求解参数: 条带宽度=%1, 最大迭代次数=%2, 残差=%3")
+                        .arg(stripWidth)
                         .arg(maxIterations)
                         .arg(epsilon, 0, 'g', 6));
             PostLog(">> 正在执行等照度自适应补丁镶嵌 (耗时操作)...");
@@ -112,4 +121,3 @@ std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globa
 }
 
 } // namespace Panels::Mosaic
-
