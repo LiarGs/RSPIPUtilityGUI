@@ -1,16 +1,12 @@
-﻿#include "EvaluatorPanelBase.h"
-
-#include "Basic/Image.h"
+#include "EvaluatorPanelBase.h"
 
 #include <QCheckBox>
-#include <QDateTime>
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QMessageBox>
+#include <QComboBox>
+#include <QFormLayout>
+#include <QGroupBox>
+#include <QLineEdit>
+#include <QSpinBox>
 #include <QStringList>
-#include <QStandardPaths>
-#include <QTextStream>
 #include <QVBoxLayout>
 
 namespace Panels::Evaluation {
@@ -39,12 +35,32 @@ void EvaluatorPanelBase::_SetupUi() {
                                             this);
     _MainLayout->addWidget(_ReferenceSelect);
 
-    _MaskSelect = new FileSelectWidget("掩膜文件 (Mask, 可选):",
+    _MaskSelect = new FileSelectWidget("掩膜影像 (Mask, 可选):",
                                        imgFilter,
                                        FileSelectWidget::Mode::FileOpen,
                                        this);
     _MaskSelect->SetPlaceholderText("留空则对整幅影像计算...");
     _MainLayout->addWidget(_MaskSelect);
+
+    _MaskPolicyGroup = new QGroupBox("Mask 选区策略", this);
+    auto *maskPolicyLayout = new QFormLayout(_MaskPolicyGroup);
+
+    _MaskBandSpin = new QSpinBox(_MaskPolicyGroup);
+    _MaskBandSpin->setRange(1, 1024);
+    _MaskBandSpin->setValue(1);
+    maskPolicyLayout->addRow("Band:", _MaskBandSpin);
+
+    _MaskModeCombo = new QComboBox(_MaskPolicyGroup);
+    _MaskModeCombo->addItem("NonZeroSelected", static_cast<int>(Application::Execution::MaskSelectionMode::NonZeroSelected));
+    _MaskModeCombo->addItem("ValueSetSelected", static_cast<int>(Application::Execution::MaskSelectionMode::ValueSetSelected));
+    maskPolicyLayout->addRow("Mode:", _MaskModeCombo);
+
+    _SelectedValuesEdit = new QLineEdit(_MaskPolicyGroup);
+    _SelectedValuesEdit->setPlaceholderText("例如: 1, 255");
+    maskPolicyLayout->addRow("SelectedValues:", _SelectedValuesEdit);
+
+    _MaskPolicyGroup->setVisible(false);
+    _MainLayout->addWidget(_MaskPolicyGroup);
 
     _BoundaryOnlyCheck = new QCheckBox("仅计算 Mask 边界像素", this);
     _BoundaryOnlyCheck->setVisible(false);
@@ -52,94 +68,80 @@ void EvaluatorPanelBase::_SetupUi() {
     _MainLayout->addWidget(_BoundaryOnlyCheck);
 
     connect(_MaskSelect, &FileSelectWidget::PathChanged, this,
-            [this](const QString &) { _UpdateBoundaryOnlyState(); });
+            [this](const QString &) {
+                _UpdateMaskPolicyState();
+                _UpdateBoundaryOnlyState();
+            });
+    connect(_MaskModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int) { _UpdateMaskPolicyState(); });
+
+    _UpdateMaskPolicyState();
+    _UpdateBoundaryOnlyState();
 
     _MainLayout->addStretch();
 }
 
-bool EvaluatorPanelBase::ValidateInput() {
+std::optional<Infrastructure::Execution::ValidationIssue> EvaluatorPanelBase::ValidateInput() {
     if (_ImageSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(this, "输入错误", "请选择待评估影像");
-        return false;
+        return Infrastructure::Execution::ValidationIssue{"输入错误", "请选择待评估影像"};
     }
 
     if (_ReferenceSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(this, "输入错误", "请选择参考影像");
-        return false;
+        return Infrastructure::Execution::ValidationIssue{"输入错误", "请选择参考影像"};
+    }
+
+    if (_MaskRequired && !_HasMaskInput()) {
+        return Infrastructure::Execution::ValidationIssue{"输入错误", "当前算法必须提供掩膜文件"};
+    }
+
+    if (!_ValidateMaskPolicyInputSyntax()) {
+        return Infrastructure::Execution::ValidationIssue{
+            "输入错误",
+            "ValueSetSelected 模式下必须提供逗号分隔的整数 SelectedValues。"};
     }
 
     if (_IsBoundaryOnlyRequested() && !_HasMaskInput()) {
-        QMessageBox::warning(this, "输入错误", "仅在提供掩膜文件后才能勾选仅计算边界像素");
-        return false;
+        return Infrastructure::Execution::ValidationIssue{
+            "输入错误",
+            "仅在提供掩膜文件后才能勾选仅计算边界像素"};
     }
 
-    return true;
+    return std::nullopt;
 }
 
-bool EvaluatorPanelBase::_ValidatePairwiseCompatible(const RSPIP::Image &imageData,
-                                                     const RSPIP::Image &referenceImage) {
-    if (imageData.Width() != referenceImage.Width() ||
-        imageData.Height() != referenceImage.Height()) {
-        PostLog("错误: 两幅影像的宽高不一致，无法进行指标评估。");
-        return false;
+void EvaluatorPanelBase::_PopulateEvaluationRequest(Application::Execution::EvaluationRequest &request,
+                                                    const QString &savePath) const {
+    request.SavePath = savePath.trimmed();
+    request.ImagePath = _ImageSelect ? _ImageSelect->CurrentPath() : QString();
+    request.ReferencePath = _ReferenceSelect ? _ReferenceSelect->CurrentPath() : QString();
+    request.MaskPath = _MaskSelect ? _MaskSelect->CurrentPath() : QString();
+    request.BoundaryOnly = _IsBoundaryOnlyRequested();
+
+    if (!_HasMaskInput()) {
+        request.MaskPolicy = std::nullopt;
+        return;
     }
 
-    return true;
-}
+    Application::Execution::MaskSelectionPolicyRequest policy;
+    policy.Band = _MaskBandSpin ? _MaskBandSpin->value() : 1;
+    policy.Mode = (_MaskModeCombo &&
+                   _MaskModeCombo->currentData().toInt() ==
+                       static_cast<int>(Application::Execution::MaskSelectionMode::ValueSetSelected))
+                      ? Application::Execution::MaskSelectionMode::ValueSetSelected
+                      : Application::Execution::MaskSelectionMode::NonZeroSelected;
 
-bool EvaluatorPanelBase::_ValidateMaskCompatible(const RSPIP::Image &imageData,
-                                                 const RSPIP::Image &maskImage) {
-    if (imageData.Width() != maskImage.Width() ||
-        imageData.Height() != maskImage.Height()) {
-        PostLog("错误: 掩膜与待评估影像的宽高不一致，无法进行指标评估。");
-        return false;
-    }
-
-    return true;
-}
-
-bool EvaluatorPanelBase::_SaveTextResult(const QString &content,
-                                         const QString &userPath,
-                                         const QString &prefix) {
-    QString finalSavePath = userPath.trimmed();
-    if (finalSavePath.isEmpty()) {
-        const QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-        finalSavePath = QString("%1/%2_%3.txt")
-                            .arg(tempDir, prefix, QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
-        PostLog(">> 使用自动生成的路径: " + finalSavePath);
-    } else {
-        const QFileInfo userInfo(finalSavePath);
-        const QString suffix = userInfo.suffix().toLower();
-        const QStringList imageSuffixes = {"tif", "tiff", "png", "jpg", "jpeg", "bmp"};
-
-        if (suffix.isEmpty() || imageSuffixes.contains(suffix)) {
-            const QString baseName = userInfo.completeBaseName().isEmpty()
-                                         ? prefix
-                                         : userInfo.completeBaseName();
-            finalSavePath = userInfo.dir().filePath(baseName + ".txt");
-            PostLog(">> 评估结果将保存为文本文件: " + finalSavePath);
+    if (policy.Mode == Application::Execution::MaskSelectionMode::ValueSetSelected && _SelectedValuesEdit) {
+        const QStringList tokens = _SelectedValuesEdit->text().split(',', Qt::SkipEmptyParts);
+        for (const QString &token : tokens) {
+            bool ok = false;
+            const int value = token.trimmed().toInt(&ok);
+            if (ok) {
+                policy.SelectedValues.push_back(value);
+            }
         }
     }
 
-    const QFileInfo finalInfo(finalSavePath);
-    const QString parentDir = finalInfo.absolutePath();
-    if (!parentDir.isEmpty() && !QDir().mkpath(parentDir)) {
-        PostLog("错误: 无法创建结果目录。");
-        return false;
-    }
-
-    QFile outputFile(finalSavePath);
-    if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-        PostLog("错误: 无法写入评估结果文件。");
-        return false;
-    }
-
-    QTextStream stream(&outputFile);
-    stream << content;
-    outputFile.close();
-
-    PostLog(">> 评估结果已保存: " + finalSavePath);
-    return true;
+    request.MaskPolicy = policy;
 }
 
 bool EvaluatorPanelBase::_HasMaskInput() const {
@@ -154,6 +156,59 @@ bool EvaluatorPanelBase::_IsBoundaryOnlyRequested() const {
 void EvaluatorPanelBase::_SetBoundaryOnlySupported(bool supported) {
     _BoundaryOnlySupported = supported;
     _UpdateBoundaryOnlyState();
+}
+
+void EvaluatorPanelBase::_SetMaskRequired(bool required) {
+    _MaskRequired = required;
+}
+
+bool EvaluatorPanelBase::_ValidateMaskPolicyInputSyntax() const {
+    if (!_HasMaskInput()) {
+        return true;
+    }
+
+    const auto mode = _MaskModeCombo &&
+                              _MaskModeCombo->currentData().toInt() ==
+                                  static_cast<int>(Application::Execution::MaskSelectionMode::ValueSetSelected)
+                          ? Application::Execution::MaskSelectionMode::ValueSetSelected
+                          : Application::Execution::MaskSelectionMode::NonZeroSelected;
+    if (mode != Application::Execution::MaskSelectionMode::ValueSetSelected) {
+        return true;
+    }
+
+    const QStringList tokens = _SelectedValuesEdit
+                                   ? _SelectedValuesEdit->text().split(',', Qt::SkipEmptyParts)
+                                   : QStringList();
+    if (tokens.isEmpty()) {
+        return false;
+    }
+
+    for (const QString &token : tokens) {
+        bool ok = false;
+        token.trimmed().toInt(&ok);
+        if (!ok) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void EvaluatorPanelBase::_UpdateMaskPolicyState() {
+    if (!_MaskPolicyGroup || !_MaskModeCombo || !_SelectedValuesEdit) {
+        return;
+    }
+
+    const bool hasMask = _HasMaskInput();
+    _MaskPolicyGroup->setVisible(hasMask);
+    _MaskPolicyGroup->setEnabled(hasMask);
+
+    const auto mode = static_cast<Application::Execution::MaskSelectionMode>(_MaskModeCombo->currentData().toInt());
+    const bool enableSelectedValues = hasMask && mode == Application::Execution::MaskSelectionMode::ValueSetSelected;
+    _SelectedValuesEdit->setEnabled(enableSelectedValues);
+
+    if (!enableSelectedValues) {
+        _SelectedValuesEdit->clear();
+    }
 }
 
 void EvaluatorPanelBase::_UpdateBoundaryOnlyState() {

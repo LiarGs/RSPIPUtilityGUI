@@ -12,8 +12,8 @@ class IsophotePanel : public ReconstructPanelBase {
     Q_OBJECT
   public:
     explicit IsophotePanel(QWidget *parent = nullptr);
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
-    QString AlgorithmName() const override { return "IsophoteConstrain (等照度线约束)"; }
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 
   protected:
     void _SetupUi() override;

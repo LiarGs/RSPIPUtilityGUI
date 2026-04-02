@@ -1,10 +1,7 @@
-﻿#include "IsophotePanel.h"
+#include "IsophotePanel.h"
+
 #include <QFormLayout>
 #include <QGroupBox>
-#include <QLabel>
-// --- RSPIP Headers ---
-#include "Basic/CloudMask.h"
-#include "IO/ImageReader.h"
 
 namespace Panels::Reconstruct {
 
@@ -45,48 +42,13 @@ void IsophotePanel::_SetupUi() {
     layout->addStretch();
 }
 
-std::function<bool()> IsophotePanel::BuildTask(const QString &globalSavePath) {
-    const QString targetPath = _TargetSelect->CurrentPath();
-    const QString referPath = _ReferSelect->CurrentPath();
-    const QString maskPath = _MaskSelect->CurrentPath();
-    const int currentMaxIterations = _MaxIterationsSpinBox->value();
-    const double currentEpsilon = _EpsilonSpinBox->value();
-
-    return [this,
-            targetPath,
-            referPath,
-            maskPath,
-            currentMaxIterations,
-            currentEpsilon,
-            globalSavePath]() {
-        PostLog(">> 正在加载影像数据...");
-
-        auto targetImage = RSPIP::IO::GeoImageRead(targetPath.toStdString());
-        auto referImage = RSPIP::IO::GeoImageRead(referPath.toStdString());
-        auto maskImage = RSPIP::IO::CloudMaskImageRead(maskPath.toStdString());
-
-        if (!(targetImage && referImage && maskImage)) {
-            PostLog("错误: 无法读取影像或掩膜文件。");
-            return false;
-        }
-
-        try {
-            PostLog(">> [IsophoteConstrain] 正在执行 (可能耗时较长)...");
-
-            RSPIP::Algorithm::ReconstructAlgorithm::IsophoteConstrain algorithm(*targetImage, *referImage, *maskImage);
-            algorithm.SetMaxIterations(currentMaxIterations);
-            algorithm.SetEpsilon(currentEpsilon);
-            SuperDebug::ScopeTimer algorithmTimer("Algorithm Execution");
-            algorithm.Execute();
-
-            return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "ReconstructIsophote");
-        } catch (const std::exception &e) {
-            PostLog(QString("异常: %1").arg(e.what()));
-            return false;
-        }
-    };
+std::unique_ptr<Application::Execution::AlgorithmRequest>
+IsophotePanel::CollectRequest(const QString &globalSavePath) const {
+    auto request = std::make_unique<Application::Execution::ReconstructIsophoteRequest>();
+    _PopulateSingleImageRequest(*request, globalSavePath);
+    request->MaxIterations = _MaxIterationsSpinBox ? _MaxIterationsSpinBox->value() : 1000;
+    request->Epsilon = _EpsilonSpinBox ? _EpsilonSpinBox->value() : 1.0;
+    return request;
 }
 
 } // namespace Panels::Reconstruct
-
-

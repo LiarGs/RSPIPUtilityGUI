@@ -8,47 +8,155 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# -----------------------------------------------------------------------------
-# 2. 依赖查找
-# -----------------------------------------------------------------------------
-
-set(CMAKE_PREFIX_PATH "D:/Qt/6.10.1/msvc2022_64") # 替换为你实际的 Qt 安装路径
-
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(OpenCV REQUIRED)
 find_package(GDAL REQUIRED)
 find_package(OpenMP)
 
-# ----------------------------------------------------------------------------
-# 3. 配置 RSPIP 库路径
+set(RSPIP_ROOT "$ENV{RSPIP_ROOT}" CACHE PATH "Path to the RSPIPUtilities repository root")
+set(RSPIP_LIBRARY_PATH "$ENV{RSPIP_LIBRARY_PATH}" CACHE FILEPATH "Path to the RSPIP core static library")
 
-# RSPIP 头文件所在的根目录 (包含 include/RSPIP.h 的那个目录)
-set(RSPIP_INCLUDE_DIR "E:/RSPIP/GuoShuai/RSPIPUtilities")
-
-# RSPIP 静态库文件的绝对路径
-set(RSPIP_LIBRARY_PATH "E:/RSPIP/GuoShuai/RSPIPUtilities/build/Release/RSPIP_Core.lib")
-
-
-# -----------------------------------------------------------------------------
-# 源文件设置
-# -----------------------------------------------------------------------------
-# 自动递归查找 UI 目录下所有的源文件 (Pages, Common)
-file(GLOB_RECURSE UI_SOURCES
-    "UI/*.h"
-    "UI/*.cpp"
+set(_RSPIP_ROOT_CANDIDATES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../RSPIPUtilities"
+    "E:/RSPIP/GuoShuai/RSPIPUtilities"
 )
 
-# 自动递归查找 Panel 目录下所有的源文件 (Panel, Common)
-file(GLOB_RECURSE Panel_SOURCES
-    "Panels/*.h"
-    "Panels/*.cpp"
+if(NOT RSPIP_ROOT OR NOT EXISTS "${RSPIP_ROOT}/include")
+    foreach(candidate IN LISTS _RSPIP_ROOT_CANDIDATES)
+        if(EXISTS "${candidate}/include")
+            set(RSPIP_ROOT
+                "${candidate}"
+                CACHE PATH
+                "Path to the RSPIPUtilities repository root"
+                FORCE)
+            message(STATUS "Auto-detected RSPIP_ROOT: ${RSPIP_ROOT}")
+            break()
+        endif()
+    endforeach()
+endif()
+
+if(NOT RSPIP_ROOT OR NOT EXISTS "${RSPIP_ROOT}/include")
+    message(FATAL_ERROR
+        "RSPIP_ROOT is not set or invalid. Please point it to the RSPIPUtilities repository root.")
+endif()
+
+if(NOT RSPIP_LIBRARY_PATH OR NOT EXISTS "${RSPIP_LIBRARY_PATH}")
+    set(_RSPIP_LIBRARY_CANDIDATES
+        "${RSPIP_ROOT}/build/Release/RSPIP_Core.lib"
+        "${RSPIP_ROOT}/build/RelWithDebInfo/RSPIP_Core.lib"
+        "${RSPIP_ROOT}/build/Debug/RSPIP_Core.lib"
+    )
+
+    foreach(candidate IN LISTS _RSPIP_LIBRARY_CANDIDATES)
+        if(EXISTS "${candidate}")
+            set(RSPIP_LIBRARY_PATH
+                "${candidate}"
+                CACHE FILEPATH
+                "Path to the RSPIP core static library"
+                FORCE)
+            message(STATUS "Auto-detected RSPIP library: ${RSPIP_LIBRARY_PATH}")
+            break()
+        endif()
+    endforeach()
+endif()
+
+if(NOT RSPIP_LIBRARY_PATH OR NOT EXISTS "${RSPIP_LIBRARY_PATH}")
+    message(FATAL_ERROR
+        "RSPIP_LIBRARY_PATH is not set or invalid. Please point it to RSPIP_Core.lib.")
+endif()
+
+set(UI_SOURCES
+    UI/MainWindow.h
+    UI/MainWindow.cpp
+    UI/Common/FileListWidget.h
+    UI/Common/FileListWidget.cpp
+    UI/Common/FileSelectWidget.h
+    UI/Common/FileSelectWidget.cpp
+    UI/Pages/ModulePageBase.h
+    UI/Pages/ModulePageBase.cpp
+)
+
+set(PANEL_SOURCES
+    Panels/AlgorithmPanelBase.h
+    Panels/Common/ImageTaskHelper.h
+    Panels/Common/ImageTaskHelper.cpp
+    Panels/CloudDetection/PixelThresholdPanel.h
+    Panels/CloudDetection/PixelThresholdPanel.cpp
+    Panels/ColorBalance/MatchStatisticsPanel.h
+    Panels/ColorBalance/MatchStatisticsPanel.cpp
+    Panels/Evaluation/EvaluatorPanelBase.h
+    Panels/Evaluation/EvaluatorPanelBase.cpp
+    Panels/Evaluation/PSNREvaluatorPanel.h
+    Panels/Evaluation/PSNREvaluatorPanel.cpp
+    Panels/Evaluation/RMSEEvaluatorPanel.h
+    Panels/Evaluation/RMSEEvaluatorPanel.cpp
+    Panels/Evaluation/SSIMEvaluatorPanel.h
+    Panels/Evaluation/SSIMEvaluatorPanel.cpp
+    Panels/Evaluation/BoundaryGradientEvaluatorPanel.h
+    Panels/Evaluation/BoundaryGradientEvaluatorPanel.cpp
+    Panels/Mosaic/MosaicPanelBase.h
+    Panels/Mosaic/MosaicPanelBase.cpp
+    Panels/Mosaic/SimplePanel.h
+    Panels/Mosaic/SimplePanel.cpp
+    Panels/Mosaic/ShowOverlapPanel.h
+    Panels/Mosaic/ShowOverlapPanel.cpp
+    Panels/Mosaic/AdaptivePatchPanel.h
+    Panels/Mosaic/AdaptivePatchPanel.cpp
+    Panels/Mosaic/AdaptiveColorBalancePatchPanel.h
+    Panels/Mosaic/AdaptiveColorBalancePatchPanel.cpp
+    Panels/Mosaic/AdaptiveIsophotePatchPanel.h
+    Panels/Mosaic/AdaptiveIsophotePatchPanel.cpp
+    Panels/Preprocess/GeoCoordinateAlignPanel.h
+    Panels/Preprocess/GeoCoordinateAlignPanel.cpp
+    Panels/Reconstruct/ReconstructPanelBase.h
+    Panels/Reconstruct/ReconstructPanelBase.cpp
+    Panels/Reconstruct/SimplePanel.h
+    Panels/Reconstruct/SimplePanel.cpp
+    Panels/Reconstruct/ColorBalancePanel.h
+    Panels/Reconstruct/ColorBalancePanel.cpp
+    Panels/Reconstruct/IsophotePanel.h
+    Panels/Reconstruct/IsophotePanel.cpp
+)
+
+set(APPLICATION_SOURCES
+    Application/Execution/AlgorithmRequestBase.h
+    Application/Execution/AlgorithmRequest.h
+    Application/Execution/AlgorithmRequestCommon.h
+    Application/Execution/AlgorithmRequestCommon.cpp
+    Application/Execution/CloudDetectionRequest.h
+    Application/Execution/CloudDetectionRequest.cpp
+    Application/Execution/ColorBalanceRequest.h
+    Application/Execution/ColorBalanceRequest.cpp
+    Application/Execution/PreprocessRequest.h
+    Application/Execution/PreprocessRequest.cpp
+    Application/Execution/ReconstructRequest.h
+    Application/Execution/ReconstructRequest.cpp
+    Application/Execution/MosaicRequest.h
+    Application/Execution/MosaicRequest.cpp
+    Application/Execution/EvaluationRequest.h
+    Application/Execution/EvaluationRequest.cpp
+    Application/Execution/ExecutionContext.h
+    Application/Registry/ModuleRegistry.h
+    Application/Registry/ModuleRegistry.cpp
+)
+
+set(INFRASTRUCTURE_SOURCES
+    Infrastructure/Execution/ExecutionTypes.h
+    Infrastructure/Execution/OutputPlanner.h
+    Infrastructure/Execution/OutputPlanner.cpp
+    Infrastructure/Execution/TaskExecutor.h
+    Infrastructure/Execution/TaskExecutor.cpp
+    Infrastructure/IO/ImageIOService.h
+    Infrastructure/IO/ImageIOService.cpp
 )
 
 set(PROJECT_SOURCES
     main.cpp
     ${UI_SOURCES}
-    ${Panel_SOURCES}
+    ${PANEL_SOURCES}
+    ${APPLICATION_SOURCES}
+    ${INFRASTRUCTURE_SOURCES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -68,23 +176,17 @@ else()
     endif()
 endif()
 
-# -----------------------------------------------------------------------------
-# 4. 包含路径与链接库
-# -----------------------------------------------------------------------------
-
-# 添加头文件搜索路径
 target_include_directories(RSPIPUtility PRIVATE
-    ${RSPIP_INCLUDE_DIR}/include     # 为了能引用 "RSPIP.h"
+    ${RSPIP_ROOT}/include
     ${GDAL_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/UI
 )
 
-# 链接库
 target_link_libraries(RSPIPUtility PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
-    ${RSPIP_LIBRARY_PATH}   # 链接RSPIP静态库
+    ${RSPIP_LIBRARY_PATH}
     ${OpenCV_LIBS}
     ${GDAL_LIBRARIES}
 )
@@ -93,9 +195,6 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(RSPIPUtility PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
-# -----------------------------------------------------------------------------
-# 平台特定设置 (保持默认即可)
-# -----------------------------------------------------------------------------
 if(${QT_VERSION} VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.RSPIPUtility)
 endif()

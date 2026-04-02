@@ -1,10 +1,9 @@
 #include "MainWindow.h"
-#include "Pages/CloudDetectionPage.h"
-#include "Pages/ColorBalancePage.h"
-#include "Pages/EvaluationPage.h"
-#include "Pages/MosaicPage.h"
-#include "Pages/ReconstructPage.h"
+
+#include "Application/Registry/ModuleRegistry.h"
+#include "Pages/ModulePageBase.h"
 #include "Util/SuperDebug.hpp"
+
 #include <QDockWidget>
 #include <QFileDialog>
 #include <QGroupBox>
@@ -12,9 +11,9 @@
 #include <QLabel>
 #include <QMetaObject>
 #include <QPointer>
-#include <QSplitter>
-#include <QSizePolicy>
 #include <QScrollBar>
+#include <QSizePolicy>
+#include <QSplitter>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTimer>
@@ -81,13 +80,13 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::_SetupUi() {
-    QWidget *centralWidget = new QWidget(this);
+    auto *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
-    QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
+    auto *mainLayout = new QHBoxLayout(centralWidget);
 
-    QGroupBox *controlPanel = new QGroupBox(tr("控制面板"), this);
+    auto *controlPanel = new QGroupBox(tr("控制面板"), this);
     controlPanel->setFixedWidth(340);
-    QVBoxLayout *controlLayout = new QVBoxLayout(controlPanel);
+    auto *controlLayout = new QVBoxLayout(controlPanel);
 
     controlLayout->addWidget(new QLabel(tr("1. 功能模块:"), this));
     _AlgoSelector = new QComboBox(this);
@@ -97,8 +96,8 @@ void MainWindow::_SetupUi() {
     _ParamStack = new QStackedWidget(this);
     controlLayout->addWidget(_ParamStack);
 
-    QGroupBox *outputGroup = new QGroupBox(tr("3. 结果保存 (可选)"), this);
-    QVBoxLayout *outputLayout = new QVBoxLayout(outputGroup);
+    auto *outputGroup = new QGroupBox(tr("3. 结果保存 (可选)"), this);
+    auto *outputLayout = new QVBoxLayout(outputGroup);
     _OutputPathEdit = new QLineEdit(this);
     _OutputPathEdit->setPlaceholderText(tr("留空则自动生成临时文件..."));
     _BrowseOutputBtn = new QPushButton(tr("选择保存路径..."), this);
@@ -112,8 +111,8 @@ void MainWindow::_SetupUi() {
     _RunBtn->setMinimumHeight(50);
     controlLayout->addWidget(_RunBtn);
 
-    QGroupBox *logGroup = new QGroupBox(tr("控制台日志"), this);
-    QVBoxLayout *logLayout = new QVBoxLayout(logGroup);
+    auto *logGroup = new QGroupBox(tr("控制台日志"), this);
+    auto *logLayout = new QVBoxLayout(logGroup);
     _LogConsole = new QTextEdit(this);
     _LogConsole->setReadOnly(true);
     _LogConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -123,7 +122,7 @@ void MainWindow::_SetupUi() {
     _LogFlushTimer->setSingleShot(true);
     connect(_LogFlushTimer, &QTimer::timeout, this, &MainWindow::_FlushPendingLogs);
 
-    QSplitter *mainSplitter = new QSplitter(Qt::Horizontal, this);
+    auto *mainSplitter = new QSplitter(Qt::Horizontal, this);
     mainSplitter->addWidget(controlPanel);
     mainSplitter->addWidget(logGroup);
     mainSplitter->setStretchFactor(1, 1);
@@ -153,17 +152,11 @@ void MainWindow::_SetupUi() {
 }
 
 void MainWindow::_InitModules() {
-    QList<ModulePageBase *> pages;
-    pages << new Pages::MosaicPage(this);
-    pages << new Pages::ReconstructPage(this);
-    pages << new Pages::ColorBalancePage(this);
-    pages << new Pages::CloudDetectionPage(this);
-    pages << new Pages::EvaluationPage(this);
-
-    for (auto page : pages) {
+    for (const auto &module : Application::Registry::AllModules()) {
+        auto *page = new Pages::ModulePageBase(module.ModuleId, this);
         _Pages.append(page);
         _ParamStack->addWidget(page);
-        _AlgoSelector->addItem(page->ModuleName());
+        _AlgoSelector->addItem(module.ModuleDisplayName);
 
         connect(page, &ModulePageBase::LogMessage, this, [this](const QString &msg) {
             OnLogMessage(PlainTextToHtml(msg), false);
@@ -183,12 +176,11 @@ void MainWindow::OnAlgorithmChanged(int index) {
 }
 
 void MainWindow::OnBrowseOutput() {
-    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
-    auto *currentPanel = currentPage ? currentPage->CurrentPanel() : nullptr;
+    auto *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
     const bool useDirectoryMode =
-        currentPanel &&
-        currentPanel->PreferredOutputSelectionMode() ==
-            Panels::AlgorithmPanelBase::OutputSelectionMode::Directory;
+        currentPage &&
+        currentPage->CurrentOutputSelectionMode() ==
+            Application::Registry::OutputSelectionMode::Directory;
 
     const QString currentPath = _OutputPathEdit ? _OutputPathEdit->text().trimmed() : QString();
 
@@ -227,7 +219,7 @@ void MainWindow::OnBrowseOutput() {
 }
 
 void MainWindow::OnExecuteClicked() {
-    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
+    auto *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
     if (currentPage) {
         currentPage->Execute(_OutputPathEdit->text());
     }
@@ -343,18 +335,19 @@ void MainWindow::OnPageExecutionStarted() {
     _RunBtn->setText(tr("处理中..."));
 }
 
-void MainWindow::OnPageExecutionFinished(bool success) {
+void MainWindow::OnPageExecutionFinished(const Infrastructure::Execution::ExecutionResult &result) {
     _RunBtn->setEnabled(true);
     _AlgoSelector->setEnabled(true);
     _OutputPathEdit->setEnabled(true);
     _BrowseOutputBtn->setEnabled(true);
     _RunBtn->setText(tr(">>> 执行处理 >>>"));
 
-    if (success) {
-        OnLogMessage("<span style='color:#7CFC00;'>任务执行完成。</span>");
-    } else {
-        OnLogMessage("<span style='color:#FF7F50;'>任务执行失败，请查看上方日志。</span>");
-    }
+    const QString summary = result.Message.isEmpty()
+                                ? (result.Success ? tr("任务执行完成。") : tr("任务执行失败，请查看上方日志。"))
+                                : result.Message;
+    const QString color = result.Success ? QStringLiteral("#7CFC00") : QStringLiteral("#FF7F50");
+    OnLogMessage(QString("<span style='color:%1;'>%2</span>")
+                     .arg(color, PlainTextToHtml(summary)));
 }
 
 void MainWindow::_UpdateAlgorithmDescription() {
@@ -362,7 +355,7 @@ void MainWindow::_UpdateAlgorithmDescription() {
         return;
     }
 
-    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
+    auto *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
     if (!currentPage) {
         _DescriptionView->setPlainText(tr("未找到当前页面。"));
         return;
@@ -382,12 +375,11 @@ void MainWindow::_UpdateOutputHints() {
         return;
     }
 
-    ModulePageBase *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
-    auto *panel = currentPage ? currentPage->CurrentPanel() : nullptr;
+    auto *currentPage = qobject_cast<ModulePageBase *>(_ParamStack->currentWidget());
     const bool useDirectoryMode =
-        panel &&
-        panel->PreferredOutputSelectionMode() ==
-            Panels::AlgorithmPanelBase::OutputSelectionMode::Directory;
+        currentPage &&
+        currentPage->CurrentOutputSelectionMode() ==
+            Application::Registry::OutputSelectionMode::Directory;
 
     _OutputPathEdit->setPlaceholderText(useDirectoryMode
                                             ? tr("留空则自动生成临时目录结果，或填写输出目录...")
@@ -396,5 +388,3 @@ void MainWindow::_UpdateOutputHints() {
 }
 
 } // namespace UI
-
-

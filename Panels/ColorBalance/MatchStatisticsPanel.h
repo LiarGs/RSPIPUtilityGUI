@@ -18,13 +18,9 @@ class MatchStatisticsPanel : public AlgorithmPanelBase {
     explicit MatchStatisticsPanel(QWidget *parent = nullptr);
     ~MatchStatisticsPanel() override = default;
 
-    QString AlgorithmName() const override { return "MatchStatistics (统计学方法)"; }
-    OutputSelectionMode PreferredOutputSelectionMode() const override {
-        return OutputSelectionMode::Directory;
-    }
-
-    bool ValidateInput() override;
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::optional<Infrastructure::Execution::ValidationIssue> ValidateInput() override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 
   protected:
     void _SetupUi() override;

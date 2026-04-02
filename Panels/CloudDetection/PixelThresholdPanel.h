@@ -15,13 +15,10 @@ class PixelThresholdPanel : public AlgorithmPanelBase {
     explicit PixelThresholdPanel(QWidget *parent = nullptr);
     ~PixelThresholdPanel() override = default;
 
-    QString AlgorithmName() const override { return "PixelThreshold (像素阈值法)"; }
-    OutputSelectionMode PreferredOutputSelectionMode() const override {
-        return OutputSelectionMode::Directory;
-    }
     QString AlgorithmDescription() const override;
-    bool ValidateInput() override;
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::optional<Infrastructure::Execution::ValidationIssue> ValidateInput() override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 
   protected:
     void _SetupUi() override;

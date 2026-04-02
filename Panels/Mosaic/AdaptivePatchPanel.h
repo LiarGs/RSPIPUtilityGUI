@@ -13,9 +13,9 @@ class AdaptivePatchPanel : public MosaicPanelBase {
   public:
     explicit AdaptivePatchPanel(QWidget *parent = nullptr);
 
-    QString AlgorithmName() const override { return "AdaptivePatch (自适应补丁)"; }
-    bool ValidateInput() override;
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::optional<Infrastructure::Execution::ValidationIssue> ValidateInput() override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 
   protected:
     void _SetupUi() override;

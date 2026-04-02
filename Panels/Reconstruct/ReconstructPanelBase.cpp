@@ -1,10 +1,9 @@
-﻿#include "ReconstructPanelBase.h"
-#include "Common/FileSelectWidget.h"
-#include "IO/ImageSaveVisitor.h"
+#include "ReconstructPanelBase.h"
 
 namespace Panels::Reconstruct {
 
-ReconstructPanelBase::ReconstructPanelBase(QWidget *parent) : AlgorithmPanelBase(parent) {
+ReconstructPanelBase::ReconstructPanelBase(QWidget *parent)
+    : AlgorithmPanelBase(parent) {
     _SetupUi();
 }
 
@@ -13,7 +12,7 @@ void ReconstructPanelBase::_SetupUi() {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(10);
 
-    QString imgFilter = "Images (*.tif *.tiff *.png *.jpg *.bmp)";
+    const QString imgFilter = "Images (*.tif *.tiff *.png *.jpg *.bmp)";
 
     _TargetSelect = new FileSelectWidget("待修复影像 (Target):", imgFilter, FileSelectWidget::Mode::FileOpen, this);
     layout->addWidget(_TargetSelect);
@@ -27,45 +26,26 @@ void ReconstructPanelBase::_SetupUi() {
     layout->addStretch();
 }
 
-bool ReconstructPanelBase::ValidateInput() {
+std::optional<Infrastructure::Execution::ValidationIssue> ReconstructPanelBase::ValidateInput() {
     if (_TargetSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(this, "输入错误", "请选择目标影像 (Target)");
-        return false;
+        return Infrastructure::Execution::ValidationIssue{"输入错误", "请选择目标影像 (Target)"};
     }
     if (_ReferSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(this, "输入错误", "请选择参考影像 (Reference)");
-        return false;
+        return Infrastructure::Execution::ValidationIssue{"输入错误", "请选择参考影像 (Reference)"};
     }
     if (_MaskSelect->CurrentPath().isEmpty()) {
-        QMessageBox::warning(this, "输入错误", "请选择云掩膜 (Mask)");
-        return false;
+        return Infrastructure::Execution::ValidationIssue{"输入错误", "请选择云掩膜 (Mask)"};
     }
 
-    return true;
+    return std::nullopt;
 }
 
-bool ReconstructPanelBase::_SaveResult(const RSPIP::Image &result, const QString &userPath, const QString &prefix) {
-    QString finalSavePath = userPath;
-    if (finalSavePath.isEmpty()) {
-        QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-        finalSavePath = QString("%1/%2_result_%3.tif")
-                            .arg(tempDir)
-                            .arg(prefix)
-                            .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
-        PostLog(">> 使用自动生成的路径: " + finalSavePath);
-    }
-
-    bool saved = RSPIP::IO::SaveImage(result,
-                                      QFileInfo(finalSavePath).absolutePath().toStdString(),
-                                      QFileInfo(finalSavePath).fileName().toStdString());
-
-    if (saved) {
-        PostLog(">> 重构完成并保存！");
-    } else {
-        PostLog("错误: 结果保存失败。");
-    }
-    return saved;
+void ReconstructPanelBase::_PopulateSingleImageRequest(Application::Execution::SingleImageRequest &request,
+                                                       const QString &savePath) const {
+    request.SavePath = savePath.trimmed();
+    request.TargetPath = _TargetSelect ? _TargetSelect->CurrentPath() : QString();
+    request.ReferencePath = _ReferSelect ? _ReferSelect->CurrentPath() : QString();
+    request.MaskPath = _MaskSelect ? _MaskSelect->CurrentPath() : QString();
 }
 
 } // namespace Panels::Reconstruct
-

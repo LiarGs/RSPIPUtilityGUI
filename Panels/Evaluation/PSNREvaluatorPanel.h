@@ -10,10 +10,10 @@ class PSNREvaluatorPanel : public EvaluatorPanelBase {
     explicit PSNREvaluatorPanel(QWidget *parent = nullptr)
         : EvaluatorPanelBase(parent) {}
 
-    QString AlgorithmName() const override { return "PSNREvaluator (峰值信噪比)"; }
     QString AlgorithmDescription() const override;
 
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 };
 
 } // namespace Panels::Evaluation

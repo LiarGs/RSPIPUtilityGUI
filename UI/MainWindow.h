@@ -9,6 +9,8 @@
 #include <QStringList>
 #include <QTextEdit>
 
+#include "Infrastructure/Execution/ExecutionTypes.h"
+
 class QDockWidget;
 class QTimer;
 
@@ -33,7 +35,7 @@ class MainWindow : public QMainWindow {
     void OnExecuteClicked();
     void OnLogMessage(const QString &msg, bool replaceLast = false);
     void OnPageExecutionStarted();
-    void OnPageExecutionFinished(bool success);
+    void OnPageExecutionFinished(const Infrastructure::Execution::ExecutionResult &result);
     void OnCurrentAlgorithmChanged();
 
   private:

@@ -1,23 +1,43 @@
-﻿#include "Pages/ModulePageBase.h"
-#include "Panels/AlgorithmPanelBase.h"
+#include "Pages/ModulePageBase.h"
+
+#include "Infrastructure/Execution/TaskExecutor.h"
 
 #include <QComboBox>
 #include <QGroupBox>
-#include <QMetaObject>
+#include <QMessageBox>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
+#include <stdexcept>
+
 namespace UI::Pages {
 
-ModulePageBase::ModulePageBase(QWidget *parent) : QWidget(parent) {
+ModulePageBase::ModulePageBase(const QString &moduleId, QWidget *parent)
+    : QWidget(parent) {
+    const auto descriptor = Application::Registry::FindModule(moduleId);
+    if (!descriptor) {
+        throw std::runtime_error(QString("未注册的模块: %1").arg(moduleId).toStdString());
+    }
+
+    _ModuleDescriptor = *descriptor;
     _SetupUi();
+    _RegisterAlgorithms();
+
+    _TaskExecutor = new Infrastructure::Execution::TaskExecutor(this);
+    connect(_TaskExecutor, &Infrastructure::Execution::TaskExecutor::TaskStarted,
+            this, [this]() { emit ExecutionStarted(); });
+    connect(_TaskExecutor, &Infrastructure::Execution::TaskExecutor::TaskFinished,
+            this, &ModulePageBase::_FinalizeTask);
 }
 
-ModulePageBase::~ModulePageBase() {
-    if (_TaskThread) {
-        _TaskThread->quit();
-        _TaskThread->wait();
-    }
+ModulePageBase::~ModulePageBase() = default;
+
+QString ModulePageBase::ModuleName() const {
+    return _ModuleDescriptor.ModuleDisplayName;
+}
+
+QString ModulePageBase::ModuleId() const {
+    return _ModuleDescriptor.ModuleId;
 }
 
 void ModulePageBase::_SetupUi() {
@@ -43,24 +63,34 @@ void ModulePageBase::_SetupUi() {
     layout->addStretch();
 }
 
+void ModulePageBase::_RegisterAlgorithms() {
+    const auto algorithms = Application::Registry::AlgorithmsForModule(_ModuleDescriptor.ModuleId);
+    for (const auto &descriptor : algorithms) {
+        auto *panel = descriptor.PanelFactory ? descriptor.PanelFactory(this) : nullptr;
+        if (!panel) {
+            continue;
+        }
+
+        _Algorithms.push_back({descriptor, panel});
+        _AlgoSelectCombo->addItem(descriptor.AlgorithmDisplayName, descriptor.AlgorithmId);
+        _PanelStack->addWidget(panel);
+    }
+
+    if (!_Algorithms.empty()) {
+        emit CurrentAlgorithmChanged();
+    }
+}
+
 AlgorithmPanelBase *ModulePageBase::CurrentPanel() const {
     return qobject_cast<AlgorithmPanelBase *>(_PanelStack->currentWidget());
 }
 
-void ModulePageBase::_RegisterAlgorithm(AlgorithmPanelBase *panel) {
-    if (!panel)
-        return;
-
-    auto name = panel->AlgorithmName();
-
-    _AlgoSelectCombo->addItem(name, name);
-    _PanelStack->addWidget(panel);
-
-    connect(panel, &AlgorithmPanelBase::LogMessage, this, &ModulePageBase::LogMessage);
-
-    if (_PanelStack->count() == 1) {
-        emit CurrentAlgorithmChanged();
+Application::Registry::OutputSelectionMode ModulePageBase::CurrentOutputSelectionMode() const {
+    const int index = _PanelStack ? _PanelStack->currentIndex() : -1;
+    if (index < 0 || index >= static_cast<int>(_Algorithms.size())) {
+        return Application::Registry::OutputSelectionMode::FilePath;
     }
+    return _Algorithms[static_cast<size_t>(index)].Descriptor.OutputMode;
 }
 
 void ModulePageBase::OnModuleChanged(int index) {
@@ -71,7 +101,7 @@ void ModulePageBase::OnModuleChanged(int index) {
 }
 
 void ModulePageBase::Execute(const QString &savePath) {
-    if (_IsExecuting) {
+    if (_IsExecuting || (_TaskExecutor && _TaskExecutor->IsRunning())) {
         emit LogMessage("任务正在执行中，请稍候...");
         return;
     }
@@ -82,43 +112,36 @@ void ModulePageBase::Execute(const QString &savePath) {
         return;
     }
 
-    if (!currentPanel->ValidateInput()) {
+    const auto validationIssue = currentPanel->ValidateInput();
+    if (validationIssue) {
+        QMessageBox::warning(this, validationIssue->Title, validationIssue->Message);
+        emit LogMessage(QString("%1: %2").arg(validationIssue->Title, validationIssue->Message));
         return;
     }
 
-    auto task = currentPanel->BuildTask(savePath);
-    if (!task) {
-        emit LogMessage("错误: 构建后台任务失败。");
+    auto request = currentPanel->CollectRequest(savePath);
+    if (!request) {
+        emit LogMessage("错误: 构建算法请求失败。");
         return;
     }
 
     _IsExecuting = true;
     setEnabled(false);
-    emit ExecutionStarted();
 
-    auto *thread = QThread::create([this, task = std::move(task)]() mutable {
-        bool success = false;
-        try {
-            success = task ? task() : false;
-        } catch (...) {
-            success = false;
-        }
-
-        QMetaObject::invokeMethod(this, [this, success]() { _FinalizeTask(success); }, Qt::QueuedConnection);
-    });
-
-    thread->setParent(this);
-    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-
-    _TaskThread = thread;
-    thread->start();
+    const bool started = _TaskExecutor->Start(
+        std::move(request),
+        Infrastructure::Execution::ExecutionLogSink([this](const QString &msg) { emit LogMessage(msg); }));
+    if (!started) {
+        _IsExecuting = false;
+        setEnabled(true);
+        emit LogMessage("错误: 后台任务启动失败。");
+    }
 }
 
-void ModulePageBase::_FinalizeTask(bool success) {
+void ModulePageBase::_FinalizeTask(const Infrastructure::Execution::ExecutionResult &result) {
     _IsExecuting = false;
-    _TaskThread = nullptr;
     setEnabled(true);
-    emit ExecutionFinished(success);
+    emit ExecutionFinished(result);
 }
 
 } // namespace UI::Pages

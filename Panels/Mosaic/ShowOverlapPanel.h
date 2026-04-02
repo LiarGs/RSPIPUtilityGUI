@@ -10,8 +10,8 @@ class ShowOverlapPanel : public MosaicPanelBase {
     Q_OBJECT
   public:
     explicit ShowOverlapPanel(QWidget *parent = nullptr) : MosaicPanelBase(parent) {}
-    QString AlgorithmName() const override { return "ShowOverLap (显示重叠区域)"; }
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 };
 
 } // namespace Panels::Mosaic

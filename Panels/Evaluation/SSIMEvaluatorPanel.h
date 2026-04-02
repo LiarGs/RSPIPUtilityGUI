@@ -12,10 +12,10 @@ class SSIMEvaluatorPanel : public EvaluatorPanelBase {
     explicit SSIMEvaluatorPanel(QWidget *parent = nullptr);
     ~SSIMEvaluatorPanel() override = default;
 
-    QString AlgorithmName() const override { return "SSIMEvaluator (结构相似性)"; }
     QString AlgorithmDescription() const override;
 
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 
   private:
     QDoubleSpinBox *_K1Spin = nullptr;

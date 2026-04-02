@@ -10,10 +10,10 @@ class RMSEEvaluatorPanel : public EvaluatorPanelBase {
     explicit RMSEEvaluatorPanel(QWidget *parent = nullptr);
     ~RMSEEvaluatorPanel() override = default;
 
-    QString AlgorithmName() const override { return "RMSEEvaluator (均方根误差)"; }
     QString AlgorithmDescription() const override;
 
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 };
 
 } // namespace Panels::Evaluation

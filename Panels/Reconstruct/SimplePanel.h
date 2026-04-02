@@ -10,8 +10,8 @@ class SimplePanel : public ReconstructPanelBase {
     Q_OBJECT
   public:
     explicit SimplePanel(QWidget *parent = nullptr) : ReconstructPanelBase(parent) {}
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
-    QString AlgorithmName() const override { return "Simple (简单的Mask复制)"; }
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 };
 
 } // namespace Panels::Reconstruct

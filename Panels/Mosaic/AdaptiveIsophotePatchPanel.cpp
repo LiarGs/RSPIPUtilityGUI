@@ -1,5 +1,8 @@
 #include "AdaptiveIsophotePatchPanel.h"
 
+#include <QGroupBox>
+#include <QVBoxLayout>
+
 namespace Panels::Mosaic {
 
 AdaptiveIsophotePatchPanel::AdaptiveIsophotePatchPanel(QWidget *parent) : MosaicPanelBase(parent) {
@@ -51,73 +54,29 @@ void AdaptiveIsophotePatchPanel::_SetupUi() {
     layout->addStretch();
 }
 
-bool AdaptiveIsophotePatchPanel::ValidateInput() {
-    if (!MosaicPanelBase::ValidateInput())
-        return false;
+std::optional<Infrastructure::Execution::ValidationIssue> AdaptiveIsophotePatchPanel::ValidateInput() {
+    if (const auto issue = MosaicPanelBase::ValidateInput()) {
+        return issue;
+    }
 
     if (_MaskSelector->Files().count() != _ImageSelector->Files().count()) {
-        QMessageBox::warning(this, "数量不匹配",
-                             "AdaptiveIsophotePatch 算法要求掩膜文件数量必须与影像文件数量完全一致。");
-        return false;
+        return Infrastructure::Execution::ValidationIssue{
+            "数量不匹配",
+            "AdaptiveIsophotePatch 算法要求掩膜文件数量必须与影像文件数量完全一致。"};
     }
-    return true;
+    return std::nullopt;
 }
 
-std::function<bool()> AdaptiveIsophotePatchPanel::BuildTask(const QString &globalSavePath) {
-    const QStringList imageFiles = _ImageSelector->Files();
-    const QStringList maskFiles = _MaskSelector->Files();
-    const int stripWidth = _StripWidthSpin ? _StripWidthSpin->value() : 32;
-    const int maxIterations = _MaxIterationsSpin ? _MaxIterationsSpin->value() : 10000;
-    const double epsilon = _EpsilonSpin ? _EpsilonSpin->value() : 1.0;
-
-    return [this, imageFiles, maskFiles, stripWidth, maxIterations, epsilon, globalSavePath]() {
-        PostLog(">> [AdaptiveIsophotePatch] 开始执行...");
-
-        try {
-            std::vector<RSPIP::GeoImage> images;
-            images.reserve(imageFiles.count());
-            PostLog(">> 正在加载影像数据...");
-            for (const QString &path : imageFiles) {
-                auto imgPtr = RSPIP::IO::GeoImageRead(path.toStdString());
-                if (imgPtr) {
-                    images.push_back(std::move(*imgPtr));
-                } else {
-                    PostLog("无法读取: " + path);
-                    return false;
-                }
-            }
-
-            std::vector<RSPIP::CloudMask> masks;
-            masks.reserve(maskFiles.count());
-            PostLog(">> 正在加载掩膜数据...");
-            for (const QString &path : maskFiles) {
-                auto maskPtr = RSPIP::IO::CloudMaskImageRead(path.toStdString());
-                if (maskPtr) {
-                    masks.push_back(std::move(*maskPtr));
-                } else {
-                    PostLog("无法读取掩膜: " + path);
-                    return false;
-                }
-            }
-
-            RSPIP::Algorithm::MosaicAlgorithm::AdaptiveIsophotePatch algorithm(images, masks);
-            algorithm.SetStripWidth(stripWidth);
-            algorithm.SetMaxIterations(maxIterations);
-            algorithm.SetEpsilon(epsilon);
-            PostLog(QString(">> 求解参数: 条带宽度=%1, 最大迭代次数=%2, 残差=%3")
-                        .arg(stripWidth)
-                        .arg(maxIterations)
-                        .arg(epsilon, 0, 'g', 6));
-            PostLog(">> 正在执行等照度自适应补丁镶嵌 (耗时操作)...");
-            algorithm.Execute();
-
-            return _SaveResult(algorithm.AlgorithmResult, globalSavePath, "Mosaic_AdaptiveIsophote");
-
-        } catch (const std::exception &e) {
-            PostLog(QString("异常: %1").arg(e.what()));
-            return false;
-        }
-    };
+std::unique_ptr<Application::Execution::AlgorithmRequest>
+AdaptiveIsophotePatchPanel::CollectRequest(const QString &globalSavePath) const {
+    auto request = std::make_unique<Application::Execution::MosaicAdaptiveIsophotePatchRequest>();
+    request->SavePath = globalSavePath.trimmed();
+    request->ImageFiles = _ImageSelector ? _ImageSelector->Files() : QStringList();
+    request->MaskFiles = _MaskSelector ? _MaskSelector->Files() : QStringList();
+    request->StripWidth = _StripWidthSpin ? _StripWidthSpin->value() : 32;
+    request->MaxIterations = _MaxIterationsSpin ? _MaxIterationsSpin->value() : 10000;
+    request->Epsilon = _EpsilonSpin ? _EpsilonSpin->value() : 1.0;
+    return request;
 }
 
 } // namespace Panels::Mosaic

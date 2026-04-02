@@ -14,9 +14,9 @@ class AdaptiveIsophotePatchPanel : public MosaicPanelBase {
   public:
     explicit AdaptiveIsophotePatchPanel(QWidget *parent = nullptr);
 
-    QString AlgorithmName() const override { return "AdaptiveIsophotePatch (等照度自适应补丁)"; }
-    bool ValidateInput() override;
-    std::function<bool()> BuildTask(const QString &globalSavePath) override;
+    std::optional<Infrastructure::Execution::ValidationIssue> ValidateInput() override;
+    std::unique_ptr<Application::Execution::AlgorithmRequest>
+    CollectRequest(const QString &globalSavePath) const override;
 
   protected:
     void _SetupUi() override;
