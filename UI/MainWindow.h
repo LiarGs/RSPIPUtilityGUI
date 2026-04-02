@@ -10,6 +10,7 @@
 #include <QTextEdit>
 
 class QDockWidget;
+class QTimer;
 
 namespace UI {
 
@@ -36,10 +37,19 @@ class MainWindow : public QMainWindow {
     void OnCurrentAlgorithmChanged();
 
   private:
+    struct PendingLogEntry {
+        QString html;
+        bool replaceLast = false;
+    };
+
     void _SetupUi();
     void _InitModules();
     void _UpdateAlgorithmDescription();
     void _UpdateOutputHints();
+    void _ScheduleLogFlush();
+    void _FlushPendingLogs();
+    void _AppendLogHtml(const QString &html);
+    void _ReplaceLastLogHtml(const QString &html);
 
     QComboBox *_AlgoSelector = nullptr;
     QStackedWidget *_ParamStack = nullptr;
@@ -50,8 +60,9 @@ class MainWindow : public QMainWindow {
     QTextEdit *_DescriptionView = nullptr;
     QDockWidget *_LogDock = nullptr;
     QDockWidget *_DescriptionDock = nullptr;
-    QStringList _LogEntries;
-    int _InlineLogIndex = -1;
+    QTimer *_LogFlushTimer = nullptr;
+    QList<PendingLogEntry> _PendingLogEntries;
+    bool _HasActiveInlineLogBlock = false;
 
     QList<Pages::ModulePageBase *> _Pages;
 };

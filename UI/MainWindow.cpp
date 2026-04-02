@@ -15,8 +15,22 @@
 #include <QSplitter>
 #include <QSizePolicy>
 #include <QScrollBar>
+#include <QTextBlock>
+#include <QTextCursor>
 #include <QTimer>
 #include <QVBoxLayout>
+
+namespace {
+
+constexpr int kLogFlushIntervalMs = 33;
+
+QString PlainTextToHtml(const QString &text) {
+    QString html = text.toHtmlEscaped();
+    html.replace('\n', "<br>");
+    return html;
+}
+
+} // namespace
 
 namespace UI {
 
@@ -37,7 +51,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
             return;
         }
 
-        QString qMsg = QString::fromStdString(msg);
+        QString qMsg = PlainTextToHtml(QString::fromStdString(msg));
 
         QString colorHtml;
         switch (level) {
@@ -62,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 }
 
 MainWindow::~MainWindow() {
+    _FlushPendingLogs();
     SuperDebug::SetLoggerCallback([](SuperDebug::Level, const std::string &, SuperDebug::LogUpdateMode) {});
 }
 
@@ -103,6 +118,10 @@ void MainWindow::_SetupUi() {
     _LogConsole->setReadOnly(true);
     _LogConsole->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     logLayout->addWidget(_LogConsole);
+
+    _LogFlushTimer = new QTimer(this);
+    _LogFlushTimer->setSingleShot(true);
+    connect(_LogFlushTimer, &QTimer::timeout, this, &MainWindow::_FlushPendingLogs);
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal, this);
     mainSplitter->addWidget(controlPanel);
@@ -147,7 +166,7 @@ void MainWindow::_InitModules() {
         _AlgoSelector->addItem(page->ModuleName());
 
         connect(page, &ModulePageBase::LogMessage, this, [this](const QString &msg) {
-            OnLogMessage(msg, false);
+            OnLogMessage(PlainTextToHtml(msg), false);
         });
         connect(page, &ModulePageBase::ExecutionStarted, this, &MainWindow::OnPageExecutionStarted);
         connect(page, &ModulePageBase::ExecutionFinished, this, &MainWindow::OnPageExecutionFinished);
@@ -219,22 +238,96 @@ void MainWindow::OnLogMessage(const QString &msg, bool replaceLast) {
         return;
     }
 
-    if (replaceLast) {
-        if (_InlineLogIndex >= 0 && _InlineLogIndex < _LogEntries.size()) {
-            _LogEntries[_InlineLogIndex] = msg;
-        } else {
-            _LogEntries.append(msg);
-            _InlineLogIndex = _LogEntries.size() - 1;
-        }
+    if (replaceLast &&
+        !_PendingLogEntries.isEmpty() &&
+        _PendingLogEntries.last().replaceLast) {
+        _PendingLogEntries.last().html = msg;
     } else {
-        _LogEntries.append(msg);
-        _InlineLogIndex = -1;
+        _PendingLogEntries.append({msg, replaceLast});
     }
 
-    _LogConsole->setHtml(_LogEntries.join("<br>"));
+    _ScheduleLogFlush();
+}
+
+void MainWindow::_ScheduleLogFlush() {
+    if (_LogFlushTimer && !_LogFlushTimer->isActive()) {
+        _LogFlushTimer->start(kLogFlushIntervalMs);
+    }
+}
+
+void MainWindow::_FlushPendingLogs() {
+    if (!_LogConsole || _PendingLogEntries.isEmpty()) {
+        return;
+    }
+
+    QList<PendingLogEntry> pendingEntries;
+    pendingEntries.swap(_PendingLogEntries);
+
+    for (const PendingLogEntry &entry : pendingEntries) {
+        if (entry.replaceLast) {
+            if (_HasActiveInlineLogBlock) {
+                _ReplaceLastLogHtml(entry.html);
+            } else {
+                _AppendLogHtml(entry.html);
+                _HasActiveInlineLogBlock = true;
+            }
+        } else {
+            _AppendLogHtml(entry.html);
+            _HasActiveInlineLogBlock = false;
+        }
+    }
+
     if (QScrollBar *scrollBar = _LogConsole->verticalScrollBar()) {
         scrollBar->setValue(scrollBar->maximum());
     }
+
+    if (!_PendingLogEntries.isEmpty()) {
+        _ScheduleLogFlush();
+    }
+}
+
+void MainWindow::_AppendLogHtml(const QString &html) {
+    if (!_LogConsole) {
+        return;
+    }
+
+    auto *document = _LogConsole->document();
+    if (!document) {
+        return;
+    }
+
+    QTextCursor cursor(document);
+    cursor.movePosition(QTextCursor::End);
+
+    if (!document->isEmpty()) {
+        cursor.insertBlock();
+    }
+
+    cursor.insertHtml(html);
+}
+
+void MainWindow::_ReplaceLastLogHtml(const QString &html) {
+    if (!_LogConsole) {
+        return;
+    }
+
+    auto *document = _LogConsole->document();
+    if (!document || document->isEmpty()) {
+        _AppendLogHtml(html);
+        return;
+    }
+
+    const QTextBlock lastBlock = document->lastBlock();
+    if (!lastBlock.isValid()) {
+        _AppendLogHtml(html);
+        return;
+    }
+
+    QTextCursor cursor(lastBlock);
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
+    cursor.insertHtml(html);
 }
 
 void MainWindow::OnCurrentAlgorithmChanged() {
