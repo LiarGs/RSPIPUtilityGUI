@@ -97,10 +97,10 @@ set(PANEL_SOURCES
     Panels/Evaluation/BoundaryGradientEvaluatorPanel.cpp
     Panels/Mosaic/MosaicPanelBase.h
     Panels/Mosaic/MosaicPanelBase.cpp
-    Panels/Mosaic/SimplePanel.h
-    Panels/Mosaic/SimplePanel.cpp
-    Panels/Mosaic/ShowOverlapPanel.h
-    Panels/Mosaic/ShowOverlapPanel.cpp
+    Panels/Mosaic/PixelWiseStrategyPanel.h
+    Panels/Mosaic/PixelWiseStrategyPanel.cpp
+    Panels/Mosaic/VoronoiPartitionPanel.h
+    Panels/Mosaic/VoronoiPartitionPanel.cpp
     Panels/Mosaic/AdaptivePatchPanel.h
     Panels/Mosaic/AdaptivePatchPanel.cpp
     Panels/Mosaic/AdaptiveColorBalancePatchPanel.h

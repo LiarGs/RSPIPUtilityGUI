@@ -4,11 +4,23 @@
 
 namespace Application::Execution {
 
-struct MosaicSimpleRequest final : public MosaicRequest {
+enum class MosaicPixelWiseOverlapStrategy {
+    LastWriteWins,
+    HighlightOverlapRed,
+    MeanOfValidPixels,
+    MedianOfValidPixels
+};
+
+struct MosaicPixelWiseStrategyRequest final : public MosaicRequest {
+    MosaicPixelWiseOverlapStrategy Strategy = MosaicPixelWiseOverlapStrategy::LastWriteWins;
+    QStringList MaskFiles;
+
     Infrastructure::Execution::ExecutionResult Execute(const ExecutionContext &context) const override;
 };
 
-struct MosaicShowOverlapRequest final : public MosaicRequest {
+struct MosaicVoronoiPartitionRequest final : public MosaicRequest {
+    QStringList MaskFiles;
+
     Infrastructure::Execution::ExecutionResult Execute(const ExecutionContext &context) const override;
 };
 

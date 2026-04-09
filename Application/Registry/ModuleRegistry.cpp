@@ -9,8 +9,8 @@
 #include "Panels/Mosaic/AdaptiveColorBalancePatchPanel.h"
 #include "Panels/Mosaic/AdaptiveIsophotePatchPanel.h"
 #include "Panels/Mosaic/AdaptivePatchPanel.h"
-#include "Panels/Mosaic/ShowOverlapPanel.h"
-#include "Panels/Mosaic/SimplePanel.h"
+#include "Panels/Mosaic/PixelWiseStrategyPanel.h"
+#include "Panels/Mosaic/VoronoiPartitionPanel.h"
 #include "Panels/Preprocess/GeoCoordinateAlignPanel.h"
 #include "Panels/Reconstruct/ColorBalancePanel.h"
 #include "Panels/Reconstruct/IsophotePanel.h"
@@ -34,8 +34,8 @@ const std::vector<ModuleDescriptor> kModules = {
 const std::vector<AlgorithmDescriptor> kAlgorithms = {
     {QStringLiteral("preprocess"), QStringLiteral("geo_coordinate_align"), QStringLiteral("GeoCoordinateAlign"), OutputSelectionMode::Directory, 10, [](QWidget *parent) { return new Panels::Preprocess::GeoCoordinateAlignPanel(parent); }},
 
-    {QStringLiteral("mosaic"), QStringLiteral("simple"), QStringLiteral("Simple"), OutputSelectionMode::FilePath, 10, [](QWidget *parent) { return new Panels::Mosaic::SimplePanel(parent); }},
-    {QStringLiteral("mosaic"), QStringLiteral("show_overlap"), QStringLiteral("ShowOverlap"), OutputSelectionMode::FilePath, 20, [](QWidget *parent) { return new Panels::Mosaic::ShowOverlapPanel(parent); }},
+    {QStringLiteral("mosaic"), QStringLiteral("pixelwise_strategy_mosaic"), QStringLiteral("PixelWiseStrategyMosaic (像素替换策略)"), OutputSelectionMode::FilePath, 10, [](QWidget *parent) { return new Panels::Mosaic::PixelWiseStrategyPanel(parent); }},
+    {QStringLiteral("mosaic"), QStringLiteral("voronoi_partition_mosaic"), QStringLiteral("VoronoiPartitionMosaic"), OutputSelectionMode::FilePath, 20, [](QWidget *parent) { return new Panels::Mosaic::VoronoiPartitionPanel(parent); }},
     {QStringLiteral("mosaic"), QStringLiteral("adaptive_patch"), QStringLiteral("AdaptivePatch"), OutputSelectionMode::FilePath, 30, [](QWidget *parent) { return new Panels::Mosaic::AdaptivePatchPanel(parent); }},
     {QStringLiteral("mosaic"), QStringLiteral("adaptive_color_balance_patch"), QStringLiteral("AdaptiveColorBalancePatch"), OutputSelectionMode::FilePath, 40, [](QWidget *parent) { return new Panels::Mosaic::AdaptiveColorBalancePatchPanel(parent); }},
     {QStringLiteral("mosaic"), QStringLiteral("adaptive_isophote_patch"), QStringLiteral("AdaptiveIsophotePatch"), OutputSelectionMode::FilePath, 50, [](QWidget *parent) { return new Panels::Mosaic::AdaptiveIsophotePatchPanel(parent); }},
